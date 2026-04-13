@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { AuctionCard } from "../components/auction/AuctionCard";
 import { motion } from "motion/react";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 const featuredAuctions = [
   {
@@ -157,6 +158,7 @@ export function LandingPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <Link to="/login">
                 <Button variant="ghost">Login</Button>
               </Link>

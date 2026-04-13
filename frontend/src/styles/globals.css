@@ -2,26 +2,27 @@
 
 :root {
   --font-size: 14px;
-  --background: #0a0a0f;
-  --foreground: #e5e7eb;
-  --card: #111118;
-  --card-foreground: #e5e7eb;
-  --popover: #1a1a24;
-  --popover-foreground: #e5e7eb;
+  /* Light mode colors */
+  --background: #ffffff;
+  --foreground: #0a0a0f;
+  --card: #ffffff;
+  --card-foreground: #0a0a0f;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0f;
   --primary: #2563EB;
   --primary-foreground: #ffffff;
   --secondary: #10B981;
   --secondary-foreground: #ffffff;
-  --muted: #1f1f2e;
-  --muted-foreground: #9ca3af;
-  --accent: #1a1a24;
-  --accent-foreground: #e5e7eb;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f3f4f6;
+  --accent-foreground: #0a0a0f;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.05);
-  --input-background: rgba(255, 255, 255, 0.05);
-  --switch-background: #374151;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.05);
+  --input-background: rgba(0, 0, 0, 0.05);
+  --switch-background: #e5e7eb;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: #2563EB;
@@ -31,17 +32,18 @@
   --chart-4: #8b5cf6;
   --chart-5: #ec4899;
   --radius: 0.75rem;
-  --sidebar: #0f0f16;
-  --sidebar-foreground: #e5e7eb;
+  --sidebar: #f9fafb;
+  --sidebar-foreground: #0a0a0f;
   --sidebar-primary: #2563EB;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1a1a24;
-  --sidebar-accent-foreground: #e5e7eb;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-accent: #f3f4f6;
+  --sidebar-accent-foreground: #0a0a0f;
+  --sidebar-border: rgba(0, 0, 0, 0.1);
   --sidebar-ring: #2563EB;
 }
 
 .dark {
+  /* Dark mode colors */
   --background: #0a0a0f;
   --foreground: #e5e7eb;
   --card: #111118;

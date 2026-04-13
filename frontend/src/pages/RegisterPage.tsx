@@ -7,6 +7,7 @@ import { Checkbox } from "../components/ui/checkbox";
 import { Gavel, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
+import { ThemeToggle } from "../components/ThemeToggle";
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +16,11 @@ export function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+      
+      {/* Theme Toggle - Fixed Position */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
