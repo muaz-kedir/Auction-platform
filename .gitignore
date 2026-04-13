@@ -70,6 +70,18 @@ web_modules/
 .env.*
 !.env.example
 
+# Backend specific
+backend/.env
+backend/node_modules/
+backend/uploads/
+backend/logs/
+
+# Frontend specific
+frontend/.env
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -137,3 +149,19 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Package manager lock files (optional - uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
