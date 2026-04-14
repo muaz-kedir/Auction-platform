@@ -6,6 +6,7 @@ import { Switch } from "../components/ui/switch";
 import { Separator } from "../components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Badge } from "../components/ui/badge";
 import { User, Bell, Shield, CreditCard, Upload } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
