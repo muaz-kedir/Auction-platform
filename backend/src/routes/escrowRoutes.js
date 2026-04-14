@@ -8,7 +8,7 @@ openDispute,
 refundBuyer
 } = require("../controllers/escrowController");
 
-const protect = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
 router.post("/ship/:id", protect, shipItem);
 router.post("/confirm/:id", protect, confirmDelivery);

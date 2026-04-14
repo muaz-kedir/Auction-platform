@@ -14,6 +14,7 @@ import { SellerPanel } from "./pages/SellerPanel";
 import { CreateAuction } from "./pages/CreateAuction";
 import { AdminPanel } from "./pages/AdminPanel";
 import { NotFound } from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -30,7 +31,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/dashboard",
-    Component: DashboardLayout,
+    element: (
+      <ProtectedRoute requireAdmin={true}>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, Component: Dashboard },
       { path: "auctions", Component: AuctionListing },

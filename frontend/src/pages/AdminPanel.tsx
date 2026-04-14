@@ -19,7 +19,8 @@ import {
   CheckCircle2, 
   XCircle,
   Search,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,34 +28,236 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { useState, useEffect } from "react";
+import { api } from "../services/api";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 
-const users = [
-  { id: 1, name: "John Doe", email: "john@example.com", status: "active", joined: "Jan 15, 2026", auctions: 12, spent: "$5,420" },
-  { id: 2, name: "Jane Smith", email: "jane@example.com", status: "active", joined: "Feb 3, 2026", auctions: 8, spent: "$3,200" },
-  { id: 3, name: "Bob Wilson", email: "bob@example.com", status: "suspended", joined: "Mar 10, 2026", auctions: 3, spent: "$850" },
-  { id: 4, name: "Alice Brown", email: "alice@example.com", status: "active", joined: "Apr 1, 2026", auctions: 15, spent: "$8,900" },
-];
+interface Stats {
+  totalUsers: number;
+  totalAuctions: number;
+  activeAuctions: number;
+  totalRevenue: number;
+  pendingWithdrawals: number;
+  openDisputes: number;
+}
 
-const auctions = [
-  { id: 1, title: "Luxury Swiss Watch", seller: "Premium Watches Inc.", status: "active", bids: 42, currentBid: "$5,420" },
-  { id: 2, title: "Vintage Camera", seller: "Collectibles Hub", status: "pending", bids: 15, currentBid: "$1,250" },
-  { id: 3, title: "Abstract Art Painting", seller: "Art Gallery Pro", status: "sold", bids: 23, finalPrice: "$2,800" },
-  { id: 4, title: "Diamond Ring", seller: "Jewelry Experts", status: "flagged", bids: 34, currentBid: "$8,900" },
-];
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isBanned: boolean;
+  verified: boolean;
+  walletBalance: number;
+  createdAt: string;
+}
 
-const disputes = [
-  { id: 1, auction: "Abstract Art Painting", buyer: "User #8234", seller: "Art Gallery Pro", reason: "Item not as described", status: "open" },
-  { id: 2, auction: "Professional Camera", buyer: "User #5421", seller: "Camera Store", reason: "Shipping damage", status: "resolved" },
-  { id: 3, auction: "Vintage Watch", buyer: "User #7192", seller: "Watch Dealer", reason: "Payment issue", status: "open" },
-];
+interface Auction {
+  _id: string;
+  title: string;
+  seller: { _id: string; name: string; email: string };
+  status: string;
+  currentBid: number;
+  bidCount: number;
+  endTime: string;
+}
 
-const withdrawals = [
-  { id: 1, seller: "Premium Watches Inc.", amount: "$5,420", method: "Bank Transfer", status: "pending", date: "Apr 12, 2026" },
-  { id: 2, seller: "Art Gallery Pro", amount: "$2,800", method: "PayPal", status: "approved", date: "Apr 10, 2026" },
-  { id: 3, seller: "Collectibles Hub", amount: "$1,250", method: "Bank Transfer", status: "pending", date: "Apr 11, 2026" },
-];
+interface Dispute {
+  _id: string;
+  auction: { _id: string; title: string };
+  buyer: { _id: string; name: string; email: string };
+  seller: { _id: string; name: string; email: string };
+  reason: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Withdrawal {
+  _id: string;
+  user: { _id: string; name: string; email: string };
+  amount: number;
+  method: string;
+  status: string;
+  createdAt: string;
+}
 
 export function AdminPanel() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [searchUsers, setSearchUsers] = useState("");
+  const [searchAuctions, setSearchAuctions] = useState("");
+  
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
+    open: false,
+    type: "",
+    id: "",
+    name: ""
+  });
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  // Fetch data based on active tab
+  useEffect(() => {
+    fetchUsers();
+    fetchAuctions();
+    fetchDisputes();
+    fetchWithdrawals();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const data = await api.admin.getStats();
+      setStats(data);
+    } catch (error: any) {
+      toast.error("Failed to load stats");
+      console.error(error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getAllUsers({ search: searchUsers, limit: 50 });
+      setUsers(data.users);
+    } catch (error: any) {
+      toast.error("Failed to load users");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAuctions = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getAllAuctions({ search: searchAuctions, limit: 50 });
+      setAuctions(data.auctions);
+    } catch (error: any) {
+      toast.error("Failed to load auctions");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDisputes = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getAllDisputes({ limit: 50 });
+      setDisputes(data.disputes);
+    } catch (error: any) {
+      toast.error("Failed to load disputes");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWithdrawals = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getAllWithdrawals({ limit: 50 });
+      setWithdrawals(data.withdrawals);
+    } catch (error: any) {
+      toast.error("Failed to load withdrawals");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBanUser = async (userId: string, isBanned: boolean) => {
+    try {
+      await api.admin.updateUserStatus(userId, { isBanned });
+      toast.success(isBanned ? "User banned successfully" : "User unbanned successfully");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error("Failed to update user status");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    try {
+      await api.admin.deleteUser(deleteDialog.id);
+      toast.success("User deleted successfully");
+      setDeleteDialog({ open: false, type: "", id: "", name: "" });
+      fetchUsers();
+    } catch (error: any) {
+      toast.error("Failed to delete user");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteAuction = async () => {
+    try {
+      await api.admin.deleteAuction(deleteDialog.id);
+      toast.success("Auction deleted successfully");
+      setDeleteDialog({ open: false, type: "", id: "", name: "" });
+      fetchAuctions();
+    } catch (error: any) {
+      toast.error("Failed to delete auction");
+      console.error(error);
+    }
+  };
+
+  const handleApproveWithdrawal = async (id: string) => {
+    try {
+      await api.withdraw.approve(id);
+      toast.success("Withdrawal approved successfully");
+      fetchWithdrawals();
+      fetchStats();
+    } catch (error: any) {
+      toast.error("Failed to approve withdrawal");
+      console.error(error);
+    }
+  };
+
+  const handleResolveDispute = async (id: string) => {
+    try {
+      await api.disputes.resolve(id, "Resolved by admin");
+      toast.success("Dispute resolved successfully");
+      fetchDisputes();
+      fetchStats();
+    } catch (error: any) {
+      toast.error("Failed to resolve dispute");
+      console.error(error);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -69,8 +272,7 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Users</p>
-              <p className="text-3xl font-bold">50,234</p>
-              <p className="text-xs text-secondary mt-1">+245 this week</p>
+              <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
               <Users className="h-6 w-6 text-primary" />
@@ -82,8 +284,8 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Active Auctions</p>
-              <p className="text-3xl font-bold">1,432</p>
-              <p className="text-xs text-muted-foreground mt-1">234 ending today</p>
+              <p className="text-3xl font-bold">{stats?.activeAuctions || 0}</p>
+              <p className="text-xs text-muted-foreground mt-1">of {stats?.totalAuctions || 0} total</p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
               <Gavel className="h-6 w-6 text-secondary" />
@@ -95,8 +297,7 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-              <p className="text-3xl font-bold">$2.4M</p>
-              <p className="text-xs text-secondary mt-1">+8.5% this month</p>
+              <p className="text-3xl font-bold">{formatCurrency(stats?.totalRevenue || 0)}</p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <DollarSign className="h-6 w-6 text-purple-500" />
@@ -108,8 +309,8 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Open Disputes</p>
-              <p className="text-3xl font-bold">12</p>
-              <p className="text-xs text-destructive mt-1">Requires attention</p>
+              <p className="text-3xl font-bold">{stats?.openDisputes || 0}</p>
+              <p className="text-xs text-destructive mt-1">{stats?.pendingWithdrawals || 0} pending withdrawals</p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-destructive/10 flex items-center justify-center">
               <AlertCircle className="h-6 w-6 text-destructive" />
@@ -134,52 +335,80 @@ export function AdminPanel() {
               <h2 className="text-xl font-bold">User Management</h2>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search users..." className="pl-10" />
+                <Input 
+                  placeholder="Search users..." 
+                  className="pl-10"
+                  value={searchUsers}
+                  onChange={(e) => setSearchUsers(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
+                />
               </div>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
-                  <TableHead>Auctions</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={user.status === "active" ? "default" : "destructive"} className={user.status === "active" ? "bg-secondary" : ""}>
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{user.joined}</TableCell>
-                    <TableCell>{user.auctions}</TableCell>
-                    <TableCell>{user.spent}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Profile</DropdownMenuItem>
-                          <DropdownMenuItem>Send Message</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Suspend Account</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Wallet</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No users found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user._id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{user.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.isBanned ? "destructive" : "default"} className={!user.isBanned ? "bg-secondary" : ""}>
+                            {user.isBanned ? "Banned" : user.verified ? "Active" : "Unverified"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatCurrency(user.walletBalance)}</TableCell>
+                        <TableCell>{formatDate(user.createdAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleBanUser(user._id, !user.isBanned)}>
+                                {user.isBanned ? "Unban User" : "Ban User"}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => setDeleteDialog({ open: true, type: "user", id: user._id, name: user.name })}
+                              >
+                                Delete User
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Card>
         </TabsContent>
 
@@ -190,62 +419,79 @@ export function AdminPanel() {
               <h2 className="text-xl font-bold">Auction Moderation</h2>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search auctions..." className="pl-10" />
+                <Input 
+                  placeholder="Search auctions..." 
+                  className="pl-10"
+                  value={searchAuctions}
+                  onChange={(e) => setSearchAuctions(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchAuctions()}
+                />
               </div>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Bids</TableHead>
-                  <TableHead>Current/Final</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {auctions.map((auction) => (
-                  <TableRow key={auction.id}>
-                    <TableCell className="font-medium">{auction.title}</TableCell>
-                    <TableCell>{auction.seller}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          auction.status === "active" ? "default" :
-                          auction.status === "sold" ? "outline" :
-                          auction.status === "flagged" ? "destructive" :
-                          "outline"
-                        }
-                        className={
-                          auction.status === "active" ? "bg-secondary" :
-                          auction.status === "sold" ? "border-secondary text-secondary" :
-                          ""
-                        }
-                      >
-                        {auction.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{auction.bids}</TableCell>
-                    <TableCell>{auction.currentBid || auction.finalPrice}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Approve</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Remove Listing</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Bids</TableHead>
+                    <TableHead>Current Bid</TableHead>
+                    <TableHead>End Time</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {auctions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No auctions found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    auctions.map((auction) => (
+                      <TableRow key={auction._id}>
+                        <TableCell className="font-medium">{auction.title}</TableCell>
+                        <TableCell>{auction.seller?.name || "Unknown"}</TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={auction.status === "ACTIVE" ? "default" : "outline"}
+                            className={auction.status === "ACTIVE" ? "bg-secondary" : ""}
+                          >
+                            {auction.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{auction.bidCount}</TableCell>
+                        <TableCell>{formatCurrency(auction.currentBid)}</TableCell>
+                        <TableCell>{formatDate(auction.endTime)}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => setDeleteDialog({ open: true, type: "auction", id: auction._id, name: auction.title })}
+                              >
+                                Delete Auction
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Card>
         </TabsContent>
 
@@ -255,46 +501,61 @@ export function AdminPanel() {
             <div className="p-6 border-b border-border/50">
               <h2 className="text-xl font-bold">Dispute Management</h2>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Auction</TableHead>
-                  <TableHead>Buyer</TableHead>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {disputes.map((dispute) => (
-                  <TableRow key={dispute.id}>
-                    <TableCell className="font-medium">{dispute.auction}</TableCell>
-                    <TableCell>{dispute.buyer}</TableCell>
-                    <TableCell>{dispute.seller}</TableCell>
-                    <TableCell>{dispute.reason}</TableCell>
-                    <TableCell>
-                      <Badge variant={dispute.status === "open" ? "destructive" : "default"} className={dispute.status === "resolved" ? "bg-secondary" : ""}>
-                        {dispute.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {dispute.status === "open" && (
-                          <>
-                            <Button size="sm" variant="outline">Review</Button>
-                            <Button size="sm">Resolve</Button>
-                          </>
-                        )}
-                        {dispute.status === "resolved" && (
-                          <Button size="sm" variant="outline">View Details</Button>
-                        )}
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Auction</TableHead>
+                    <TableHead>Buyer</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {disputes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        No disputes found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    disputes.map((dispute) => (
+                      <TableRow key={dispute._id}>
+                        <TableCell className="font-medium">{dispute.auction?.title || "N/A"}</TableCell>
+                        <TableCell>{dispute.buyer?.name || "Unknown"}</TableCell>
+                        <TableCell>{dispute.seller?.name || "Unknown"}</TableCell>
+                        <TableCell>{dispute.reason}</TableCell>
+                        <TableCell>
+                          <Badge variant={dispute.status === "OPEN" ? "destructive" : "default"} className={dispute.status === "RESOLVED" ? "bg-secondary" : ""}>
+                            {dispute.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(dispute.createdAt)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {dispute.status === "OPEN" && (
+                              <Button size="sm" onClick={() => handleResolveDispute(dispute._id)}>
+                                Resolve
+                              </Button>
+                            )}
+                            {dispute.status === "RESOLVED" && (
+                              <Button size="sm" variant="outline">View Details</Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Card>
         </TabsContent>
 
@@ -304,55 +565,90 @@ export function AdminPanel() {
             <div className="p-6 border-b border-border/50">
               <h2 className="text-xl font-bold">Withdrawal Approvals</h2>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Seller</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {withdrawals.map((withdrawal) => (
-                  <TableRow key={withdrawal.id}>
-                    <TableCell className="font-medium">{withdrawal.seller}</TableCell>
-                    <TableCell className="font-semibold text-primary">{withdrawal.amount}</TableCell>
-                    <TableCell>{withdrawal.method}</TableCell>
-                    <TableCell>{withdrawal.date}</TableCell>
-                    <TableCell>
-                      <Badge variant={withdrawal.status === "pending" ? "outline" : "default"} className={withdrawal.status === "approved" ? "bg-secondary" : ""}>
-                        {withdrawal.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {withdrawal.status === "pending" && (
-                          <>
-                            <Button size="sm" className="gap-1">
-                              <CheckCircle2 className="h-3 w-3" />
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" className="gap-1">
-                              <XCircle className="h-3 w-3" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {withdrawal.status === "approved" && (
-                          <Button size="sm" variant="outline">View Details</Button>
-                        )}
-                      </div>
-                    </TableCell>
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {withdrawals.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No withdrawals found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    withdrawals.map((withdrawal) => (
+                      <TableRow key={withdrawal._id}>
+                        <TableCell className="font-medium">{withdrawal.user?.name || "Unknown"}</TableCell>
+                        <TableCell className="font-semibold text-primary">{formatCurrency(withdrawal.amount)}</TableCell>
+                        <TableCell>{withdrawal.method}</TableCell>
+                        <TableCell>{formatDate(withdrawal.createdAt)}</TableCell>
+                        <TableCell>
+                          <Badge variant={withdrawal.status === "PENDING" ? "outline" : "default"} className={withdrawal.status === "APPROVED" ? "bg-secondary" : ""}>
+                            {withdrawal.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            {withdrawal.status === "PENDING" && (
+                              <>
+                                <Button size="sm" className="gap-1" onClick={() => handleApproveWithdrawal(withdrawal._id)}>
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Approve
+                                </Button>
+                                <Button size="sm" variant="destructive" className="gap-1">
+                                  <XCircle className="h-3 w-3" />
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                            {withdrawal.status === "APPROVED" && (
+                              <Button size="sm" variant="outline">View Details</Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open: boolean) => setDeleteDialog({ ...deleteDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {deleteDialog.type} "{deleteDialog.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={deleteDialog.type === "user" ? handleDeleteUser : handleDeleteAuction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

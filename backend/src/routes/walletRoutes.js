@@ -6,7 +6,7 @@ getMyWallet,
 deposit
 } = require("../controllers/walletController");
 
-const auth = require("../middleware/authMiddleware");
+const { protect: auth } = require("../middleware/authMiddleware");
 
 router.get("/", auth, getMyWallet);
 router.post("/deposit", auth, deposit);

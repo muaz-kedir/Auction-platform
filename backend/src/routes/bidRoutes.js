@@ -3,7 +3,7 @@ const router = express.Router();
 
 const { placeBid } = require("../controllers/bidController");
 
-const protect = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 
 router.post("/:id", protect, placeBid);
 

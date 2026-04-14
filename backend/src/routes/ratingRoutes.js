@@ -6,7 +6,7 @@ addRating,
 getSellerRatings
 } = require("../controllers/ratingController");
 
-const auth = require("../middleware/authMiddleware");
+const { protect: auth } = require("../middleware/authMiddleware");
 
 router.post("/", auth, addRating);
 router.get("/:id", getSellerRatings);

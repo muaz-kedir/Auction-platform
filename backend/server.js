@@ -16,6 +16,7 @@ const { initSocket } = require("./src/utils/socket");
 const categoryRoutes = require("./src/routes/categoryRoutes");
 const ratingRoutes = require("./src/routes/ratingRoutes");
 const disputeRoutes = require("./src/routes/disputeRoutes");
+const adminRoutes = require("./src/routes/adminRoutes");
 
 
 const cron = require("node-cron");
@@ -36,6 +37,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/disputes", disputeRoutes);
+app.use("/api/admin", adminRoutes);
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)

@@ -173,6 +173,55 @@ export const api = {
         body: JSON.stringify({ resolution }),
       }),
   },
+
+  // Admin endpoints
+  admin: {
+    getStats: () => apiRequest('/admin/stats'),
+    
+    getAllUsers: (params?: { page?: number; limit?: number; search?: string; role?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/users${queryString}`);
+    },
+    
+    updateUserStatus: (id: string, data: { isBanned?: boolean; verified?: boolean }) => 
+      apiRequest(`/admin/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    
+    deleteUser: (id: string) => 
+      apiRequest(`/admin/users/${id}`, {
+        method: 'DELETE',
+      }),
+    
+    getAllAuctions: (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/auctions${queryString}`);
+    },
+    
+    deleteAuction: (id: string) => 
+      apiRequest(`/admin/auctions/${id}`, {
+        method: 'DELETE',
+      }),
+    
+    getAllDisputes: (params?: { page?: number; limit?: number; status?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/disputes${queryString}`);
+    },
+    
+    getAllWithdrawals: (params?: { page?: number; limit?: number; status?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/withdrawals${queryString}`);
+    },
+    
+    createAdmin: (data: { name: string; email: string; password: string; role: string }) => 
+      apiRequest('/admin/admins', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    
+    getAllAdmins: () => apiRequest('/admin/admins'),
+  },
 };
 
 export default api;

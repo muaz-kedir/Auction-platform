@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useNavigate } from "react-router";
 import { 
   LayoutDashboard, 
   Gavel, 
@@ -29,27 +29,50 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { useAuth } from "../contexts/AuthContext";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Auctions", href: "/dashboard/auctions", icon: Gavel },
-  { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp },
-  { name: "Wallet", href: "/dashboard/wallet", icon: Wallet },
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell },
-  { name: "Seller Panel", href: "/dashboard/seller", icon: ShoppingBag },
-  { name: "Admin", href: "/dashboard/admin", icon: Shield },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "Auctions", href: "/dashboard/auctions", icon: Gavel, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
+  { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "Notifications", href: "/dashboard/notifications", icon: Bell, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "Seller Panel", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin", "seller"] },
+  { name: "Admin", href: "/dashboard/admin", icon: Shield, roles: ["admin", "super_admin"] },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings, roles: ["admin", "super_admin", "seller", "buyer"] },
 ];
 
 export function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
       return location.pathname === path;
     }
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // Filter navigation based on user role
+  const filteredNavigation = navigation.filter(item => 
+    item.roles.includes(user?.role || "buyer")
+  );
+
+  // Get user initials
+  const getUserInitials = () => {
+    if (!user?.name) return "U";
+    const names = user.name.split(" ");
+    if (names.length >= 2) {
+      return `${names[0][0]}${names[1][0]}`.toUpperCase();
+    }
+    return user.name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -100,7 +123,7 @@ export function DashboardLayout() {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-3 overflow-y-auto">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const active = isActive(item.href);
               return (
                 <Link
@@ -129,12 +152,12 @@ export function DashboardLayout() {
           <div className="border-t border-sidebar-border p-4">
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar className="h-9 w-9">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
+                <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">John Doe</p>
-                <p className="text-xs text-muted-foreground truncate">john@example.com</p>
+                <p className="text-sm font-medium truncate">{user?.name || "User"}</p>
+                <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
               </div>
             </div>
           </div>
@@ -170,28 +193,28 @@ export function DashboardLayout() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="gap-2">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=John" />
-                    <AvatarFallback>JD</AvatarFallback>
+                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline">John Doe</span>
+                  <span className="hidden sm:inline">{user?.name || "User"}</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
+                <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  <Link to="/login">Logout</Link>
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

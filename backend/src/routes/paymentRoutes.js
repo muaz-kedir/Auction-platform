@@ -6,7 +6,7 @@ requestWithdraw,
 approveWithdraw
 } = require("../controllers/withdrawController");
 
-const auth = require("../middleware/authMiddleware");
+const { protect: auth } = require("../middleware/authMiddleware");
 
 router.post("/", auth, requestWithdraw);
 router.put("/:id/approve", auth, approveWithdraw);

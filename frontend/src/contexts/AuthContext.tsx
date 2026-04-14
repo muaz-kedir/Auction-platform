@@ -2,10 +2,11 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { api } from '../services/api';
 
 interface User {
-  id: string;
+  _id: string;
+  id?: string;
   name: string;
   email: string;
-  role?: string;
+  role: string;
 }
 
 interface AuthContextType {
@@ -42,11 +43,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.auth.login({ email, password });
       const { token: newToken, user: newUser } = response;
       
+      // Ensure user has id field (use _id if id doesn't exist)
+      const userWithId = {
+        ...newUser,
+        id: newUser.id || newUser._id
+      };
+      
       localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      localStorage.setItem('user', JSON.stringify(userWithId));
       
       setToken(newToken);
-      setUser(newUser);
+      setUser(userWithId);
     } catch (error) {
       throw error;
     }
@@ -57,11 +64,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.auth.register({ name, email, password });
       const { token: newToken, user: newUser } = response;
       
+      // Ensure user has id field (use _id if id doesn't exist)
+      const userWithId = {
+        ...newUser,
+        id: newUser.id || newUser._id
+      };
+      
       localStorage.setItem('token', newToken);
-      localStorage.setItem('user', JSON.stringify(newUser));
+      localStorage.setItem('user', JSON.stringify(userWithId));
       
       setToken(newToken);
-      setUser(newUser);
+      setUser(userWithId);
     } catch (error) {
       throw error;
     }

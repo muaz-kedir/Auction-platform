@@ -7,7 +7,7 @@ getAuctions,
 getAuctionById
 } = require("../controllers/auctionController");
 
-const auth = require("../middleware/authMiddleware");
+const { protect: auth } = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload");
 
 router.post(
