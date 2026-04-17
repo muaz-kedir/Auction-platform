@@ -24,6 +24,11 @@ const userSchema = new mongoose.Schema(
     default: "buyer"
   },
 
+  profileImage: {
+    type: String,
+    default: null
+  },
+
   verified: {
     type: Boolean,
     default: false

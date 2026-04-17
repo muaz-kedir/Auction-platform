@@ -10,6 +10,7 @@ router.get("/stats", protect, adminOnly, adminController.getDashboardStats);
 // User Management
 router.get("/users", protect, adminOnly, adminController.getAllUsers);
 router.patch("/users/:id", protect, adminOnly, adminController.updateUserStatus);
+router.put("/users/:id", protect, adminOnly, adminController.updateUser);
 router.delete("/users/:id", protect, superAdminOnly, adminController.deleteUser);
 
 // Auction Management

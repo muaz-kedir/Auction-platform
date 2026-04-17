@@ -13,6 +13,7 @@ import { Settings } from "./pages/Settings";
 import { SellerPanel } from "./pages/SellerPanel";
 import { CreateAuction } from "./pages/CreateAuction";
 import { AdminPanel } from "./pages/AdminPanel";
+import { UserRoleManagement } from "./pages/UserRoleManagement";
 import { NotFound } from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "seller", Component: SellerPanel },
       { path: "seller/create", Component: CreateAuction },
       { path: "admin", Component: AdminPanel },
+      { path: "admin/users", Component: UserRoleManagement },
     ],
   },
   {

@@ -75,6 +75,19 @@ export function DashboardLayout() {
     return user.name.substring(0, 2).toUpperCase();
   };
 
+  // Get profile image URL
+  const getProfileImageUrl = () => {
+    if (user?.profileImage) {
+      // If it's a full URL, use it directly
+      if (user.profileImage.startsWith('http')) {
+        return user.profileImage;
+      }
+      // Otherwise, prepend the API base URL
+      return `http://localhost:5000${user.profileImage}`;
+    }
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar backdrop */}
@@ -152,7 +165,7 @@ export function DashboardLayout() {
           <div className="border-t border-sidebar-border p-4">
             <div className="flex items-center gap-3 px-3 py-2">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
+                <AvatarImage src={getProfileImageUrl()} />
                 <AvatarFallback>{getUserInitials()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
@@ -191,14 +204,14 @@ export function DashboardLayout() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2">
+                <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 px-3">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
+                    <AvatarImage src={getProfileImageUrl()} />
                     <AvatarFallback>{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline">{user?.name || "User"}</span>
                   <ChevronDown className="h-4 w-4" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>

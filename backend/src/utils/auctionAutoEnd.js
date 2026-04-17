@@ -8,10 +8,16 @@ const now = new Date();
 
 const auctions = await Auction.find({
 endTime: { $lte: now },
-status: { $ne: "ended" }
+status: { $ne: "ENDED" }
 });
 
 for (let auction of auctions) {
+try {
+// Skip invalid auctions
+if (!auction.startingBid || auction.startingBid === undefined) {
+console.log("Skipping invalid auction (missing startingBid):", auction._id);
+continue;
+}
 
 const highestBid = await Bid
 .findOne({ auction: auction._id })
@@ -22,14 +28,19 @@ auction.winner = highestBid.bidder;
 auction.currentBid = highestBid.amount;
 }
 
-auction.status = "ended";
+auction.status = "ENDED";
 await auction.save();
 
 console.log("Auction ended:", auction._id);
+} catch (auctionError) {
+// Skip this auction if there's an error and continue with others
+console.log("Error ending auction", auction._id, "- skipping:", auctionError.message);
+continue;
+}
 }
 
 } catch (error) {
-console.log(error);
+console.log("Error in autoEndAuctions:", error.message);
 }
 };
 

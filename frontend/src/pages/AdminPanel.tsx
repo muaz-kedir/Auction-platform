@@ -20,7 +20,8 @@ import {
   XCircle,
   Search,
   MoreVertical,
-  Loader2
+  Loader2,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -261,9 +262,15 @@ export function AdminPanel() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
-        <p className="text-muted-foreground">Manage users, auctions, and platform operations</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+          <p className="text-muted-foreground">Manage users, auctions, and platform operations</p>
+        </div>
+        <Button onClick={() => window.location.href = "/dashboard/admin/users"}>
+          <Shield className="h-4 w-4 mr-2" />
+          User & Role Management
+        </Button>
       </div>
 
       {/* Stats */}

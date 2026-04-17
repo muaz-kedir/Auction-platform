@@ -17,6 +17,7 @@ const categoryRoutes = require("./src/routes/categoryRoutes");
 const ratingRoutes = require("./src/routes/ratingRoutes");
 const disputeRoutes = require("./src/routes/disputeRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
+const profileRoutes = require("./src/routes/profileRoutes");
 
 
 const cron = require("node-cron");
@@ -38,6 +39,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/profile", profileRoutes);
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)

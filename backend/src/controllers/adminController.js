@@ -105,6 +105,51 @@ exports.updateUserStatus = async (req, res) => {
   }
 };
 
+// Update User (Full Update including role)
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role, isBanned, verified } = req.body;
+
+    // Only super_admin can change roles
+    if (role && req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only super admin can change user roles" });
+    }
+
+    // Prevent changing super_admin role unless you are super_admin
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (targetUser.role === "super_admin" && req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Cannot modify super admin" });
+    }
+
+    // Prevent admin from modifying other admins
+    if (targetUser.role === "admin" && req.user.role === "admin") {
+      return res.status(403).json({ message: "Admins cannot modify other admins" });
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (typeof isBanned !== 'undefined') updateData.isBanned = isBanned;
+    if (typeof verified !== 'undefined') updateData.verified = verified;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    ).select("-password");
+
+    res.json({ message: "User updated successfully", user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Delete User
 exports.deleteUser = async (req, res) => {
   try {

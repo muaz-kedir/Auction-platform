@@ -189,6 +189,12 @@ export const api = {
         body: JSON.stringify(data),
       }),
     
+    updateUser: (id: string, data: { name?: string; email?: string; role?: string; isBanned?: boolean; verified?: boolean }) => 
+      apiRequest(`/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    
     deleteUser: (id: string) => 
       apiRequest(`/admin/users/${id}`, {
         method: 'DELETE',
@@ -221,6 +227,33 @@ export const api = {
       }),
     
     getAllAdmins: () => apiRequest('/admin/admins'),
+  },
+
+  // Profile endpoints
+  profile: {
+    getProfile: () => apiRequest('/profile'),
+    
+    updateProfile: (formData: FormData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      }).then(handleResponse);
+    },
+    
+    uploadImage: (formData: FormData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}/profile/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      }).then(handleResponse);
+    },
   },
 };
 
