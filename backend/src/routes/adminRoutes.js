@@ -27,4 +27,9 @@ router.get("/withdrawals", protect, adminOnly, adminController.getAllWithdrawals
 router.post("/admins", protect, superAdminOnly, adminController.createAdmin);
 router.get("/admins", protect, adminOnly, adminController.getAllAdmins);
 
+// Auction Approval Workflow
+router.post("/auctions/:id/submit", protect, adminOnly, adminController.submitAuctionForApproval);
+router.post("/auctions/:id/approve", protect, superAdminOnly, adminController.approveAuction);
+router.post("/auctions/:id/reject", protect, superAdminOnly, adminController.rejectAuction);
+
 module.exports = router;

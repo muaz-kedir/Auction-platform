@@ -10,10 +10,13 @@ import { MyBids } from "./pages/MyBids";
 import { Wallet } from "./pages/Wallet";
 import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
-import { SellerPanel } from "./pages/SellerPanel";
+import { SellerDashboard } from "./pages/SellerDashboard";
+import { MyAuctions } from "./pages/MyAuctions";
 import { CreateAuction } from "./pages/CreateAuction";
 import { AdminPanel } from "./pages/AdminPanel";
 import { UserRoleManagement } from "./pages/UserRoleManagement";
+import { AnnouncementsManagement } from "./pages/AnnouncementsManagement";
+import { AuctionApprovalManagement } from "./pages/AuctionApprovalManagement";
 import { NotFound } from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -31,9 +34,20 @@ export const router = createBrowserRouter([
     Component: RegisterPage,
   },
   {
+    path: "/auction/:id",
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, Component: AuctionDetail },
+    ],
+  },
+  {
     path: "/dashboard",
     element: (
-      <ProtectedRoute requireAdmin={true}>
+      <ProtectedRoute>
         <DashboardLayout />
       </ProtectedRoute>
     ),
@@ -45,10 +59,41 @@ export const router = createBrowserRouter([
       { path: "wallet", Component: Wallet },
       { path: "notifications", Component: Notifications },
       { path: "settings", Component: Settings },
-      { path: "seller", Component: SellerPanel },
+      { path: "seller", Component: SellerDashboard },
+      { path: "seller/auctions", Component: MyAuctions },
       { path: "seller/create", Component: CreateAuction },
-      { path: "admin", Component: AdminPanel },
-      { path: "admin/users", Component: UserRoleManagement },
+      { 
+        path: "admin", 
+        element: (
+          <ProtectedRoute requireAdmin={true}>
+            <AdminPanel />
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: "admin/users", 
+        element: (
+          <ProtectedRoute requireAdmin={true}>
+            <UserRoleManagement />
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: "admin/announcements", 
+        element: (
+          <ProtectedRoute requireAdmin={true}>
+            <AnnouncementsManagement />
+          </ProtectedRoute>
+        )
+      },
+      { 
+        path: "admin/auctions", 
+        element: (
+          <ProtectedRoute requireAdmin={true}>
+            <AuctionApprovalManagement />
+          </ProtectedRoute>
+        )
+      },
     ],
   },
   {

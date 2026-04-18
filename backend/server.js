@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const notificationRoutes = require("./src/routes/notificationRoutes");
@@ -18,6 +19,7 @@ const ratingRoutes = require("./src/routes/ratingRoutes");
 const disputeRoutes = require("./src/routes/disputeRoutes");
 const adminRoutes = require("./src/routes/adminRoutes");
 const profileRoutes = require("./src/routes/profileRoutes");
+const announcementRoutes = require("./src/routes/announcementRoutes");
 
 
 const cron = require("node-cron");
@@ -26,6 +28,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files as static
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/auth", authRoutes);
@@ -40,6 +46,7 @@ app.use("/api/ratings", ratingRoutes);
 app.use("/api/disputes", disputeRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)

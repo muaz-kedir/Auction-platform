@@ -21,7 +21,8 @@ import {
   Search,
   MoreVertical,
   Loader2,
-  Shield
+  Shield,
+  Megaphone
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -267,10 +268,20 @@ export function AdminPanel() {
           <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
           <p className="text-muted-foreground">Manage users, auctions, and platform operations</p>
         </div>
-        <Button onClick={() => window.location.href = "/dashboard/admin/users"}>
-          <Shield className="h-4 w-4 mr-2" />
-          User & Role Management
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => window.location.href = "/dashboard/admin/users"} variant="outline">
+            <Shield className="h-4 w-4 mr-2" />
+            Users
+          </Button>
+          <Button onClick={() => window.location.href = "/dashboard/admin/auctions"} variant="outline">
+            <Gavel className="h-4 w-4 mr-2" />
+            Auctions
+          </Button>
+          <Button onClick={() => window.location.href = "/dashboard/admin/announcements"}>
+            <Megaphone className="h-4 w-4 mr-2" />
+            Announcements
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

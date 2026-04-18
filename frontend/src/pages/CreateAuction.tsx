@@ -10,35 +10,175 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Upload, X, ImageIcon } from "lucide-react";
-import { useState } from "react";
+import { Upload, X, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
+import { api } from "../services/api";
+
+interface Category {
+  _id: string;
+  name: string;
+}
 
 export function CreateAuction() {
   const navigate = useNavigate();
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    category: "",
+    condition: "",
+    startingBid: "",
+    reservePrice: "",
+    buyNowPrice: "",
+    bidIncrement: "10",
+    duration: "7",
+    startDate: new Date().toISOString().slice(0, 16),
+    shippingCost: "",
+    shippingMethod: "",
+    location: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success("Auction created successfully!", {
-      description: "Your auction is now live and visible to buyers.",
-    });
-    navigate("/dashboard/seller");
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await api.categories.getAll();
+      setCategories(response);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      toast.error("Failed to load categories");
+    }
   };
 
-  const handleImageUpload = () => {
-    // Simulate image upload
-    const placeholders = [
-      "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop",
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=300&fit=crop",
-    ];
-    setImages([...images, placeholders[images.length % 2]]);
-    toast.success("Image uploaded successfully!");
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newFiles = Array.from(files);
+    const totalImages = images.length + newFiles.length;
+
+    if (totalImages > 8) {
+      toast.error("Maximum 8 images allowed");
+      return;
+    }
+
+    // Add files
+    setImages((prev) => [...prev, ...newFiles]);
+
+    // Create previews
+    newFiles.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    toast.success(`${newFiles.length} image(s) uploaded`);
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error("You are not logged in. Please login again.");
+      navigate('/login');
+      return;
+    }
+
+    if (images.length === 0) {
+      toast.error("Please upload at least one image");
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+
+    if (!formData.startingBid || parseFloat(formData.startingBid) <= 0) {
+      toast.error("Starting bid must be greater than 0");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Calculate end time based on duration
+      const startDate = new Date(formData.startDate);
+      const endTime = new Date(startDate);
+      endTime.setDate(endTime.getDate() + parseInt(formData.duration));
+
+      console.log("Submitting auction with:", {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        startingBid: formData.startingBid,
+        endTime: endTime.toISOString(),
+        imageCount: images.length
+      });
+
+      // Create FormData for multipart upload
+      const submitData = new FormData();
+      submitData.append("title", formData.title);
+      submitData.append("description", formData.description);
+      
+      // Only add category if selected
+      if (formData.category) {
+        submitData.append("category", formData.category);
+      }
+      
+      submitData.append("startingBid", formData.startingBid);
+      submitData.append("endTime", endTime.toISOString());
+
+      // Add images
+      images.forEach((image) => {
+        submitData.append("images", image);
+      });
+
+      const response = await api.auctions.create(submitData);
+      console.log("Auction created:", response);
+
+      toast.success("Auction created successfully!", {
+        description: "Your auction is pending approval.",
+      });
+      navigate("/dashboard/seller");
+    } catch (error: any) {
+      console.error("Failed to create auction:", error);
+      const errorMessage = error.response?.data?.error || error.message || "Failed to create auction";
+      
+      // If unauthorized, suggest re-login
+      if (errorMessage.includes("token") || errorMessage.includes("authorized") || errorMessage.includes("Invalid token")) {
+        toast.error("Your session has expired. Please login again.", {
+          action: {
+            label: "Login",
+            onClick: () => navigate('/login')
+          }
+        });
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -59,31 +199,39 @@ export function CreateAuction() {
               <Label htmlFor="title">Title *</Label>
               <Input 
                 id="title" 
-                placeholder="e.g., Luxury Swiss Automatic Watch" 
+                placeholder="e.g., Luxury Swiss Automatic Watch"
+                value={formData.title}
+                onChange={(e) => handleInputChange("title", e.target.value)}
                 required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="category">Category *</Label>
-              <Select required>
+              <Select 
+                value={formData.category}
+                onValueChange={(value) => handleInputChange("category", value)}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="watches">Watches</SelectItem>
-                  <SelectItem value="art">Art</SelectItem>
-                  <SelectItem value="vehicles">Vehicles</SelectItem>
-                  <SelectItem value="jewelry">Jewelry</SelectItem>
-                  <SelectItem value="collectibles">Collectibles</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat._id} value={cat._id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="condition">Condition *</Label>
-              <Select required>
+              <Label htmlFor="condition">Condition</Label>
+              <Select 
+                value={formData.condition}
+                onValueChange={(value) => handleInputChange("condition", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
@@ -103,6 +251,8 @@ export function CreateAuction() {
                 id="description" 
                 placeholder="Provide detailed information about your item..."
                 rows={6}
+                value={formData.description}
+                onChange={(e) => handleInputChange("description", e.target.value)}
                 required
               />
             </div>
@@ -115,9 +265,9 @@ export function CreateAuction() {
           
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {images.map((image, index) => (
+              {imagePreviews.map((preview, index) => (
                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border/50">
-                  <img src={image} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                  <img src={preview} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removeImage(index)}
@@ -125,17 +275,25 @@ export function CreateAuction() {
                   >
                     <X className="h-4 w-4 text-white" />
                   </button>
+                  {index === 0 && (
+                    <div className="absolute bottom-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                      Cover
+                    </div>
+                  )}
                 </div>
               ))}
               {images.length < 8 && (
-                <button
-                  type="button"
-                  onClick={handleImageUpload}
-                  className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary"
-                >
+                <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
                   <Upload className="h-8 w-8" />
                   <span className="text-sm">Upload</span>
-                </button>
+                </label>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
@@ -155,6 +313,8 @@ export function CreateAuction() {
                 id="startingBid" 
                 type="number" 
                 placeholder="0.00"
+                value={formData.startingBid}
+                onChange={(e) => handleInputChange("startingBid", e.target.value)}
                 required
               />
             </div>
@@ -165,6 +325,8 @@ export function CreateAuction() {
                 id="reservePrice" 
                 type="number" 
                 placeholder="0.00"
+                value={formData.reservePrice}
+                onChange={(e) => handleInputChange("reservePrice", e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Minimum price to sell (optional)
@@ -177,6 +339,8 @@ export function CreateAuction() {
                 id="buyNowPrice" 
                 type="number" 
                 placeholder="0.00"
+                value={formData.buyNowPrice}
+                onChange={(e) => handleInputChange("buyNowPrice", e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
                 Allow instant purchase (optional)
@@ -185,7 +349,11 @@ export function CreateAuction() {
 
             <div className="space-y-2">
               <Label htmlFor="bidIncrement">Bid Increment (USD) *</Label>
-              <Select required defaultValue="10">
+              <Select 
+                value={formData.bidIncrement}
+                onValueChange={(value) => handleInputChange("bidIncrement", value)}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -208,7 +376,11 @@ export function CreateAuction() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="duration">Duration *</Label>
-              <Select required defaultValue="7">
+              <Select 
+                value={formData.duration}
+                onValueChange={(value) => handleInputChange("duration", value)}
+                required
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -227,7 +399,8 @@ export function CreateAuction() {
               <Input 
                 id="startDate" 
                 type="datetime-local"
-                defaultValue={new Date().toISOString().slice(0, 16)}
+                value={formData.startDate}
+                onChange={(e) => handleInputChange("startDate", e.target.value)}
               />
             </div>
           </div>
@@ -235,22 +408,26 @@ export function CreateAuction() {
 
         {/* Shipping */}
         <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-          <h2 className="text-xl font-bold mb-6">Shipping</h2>
+          <h2 className="text-xl font-bold mb-6">Shipping (Optional)</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="shippingCost">Shipping Cost (USD) *</Label>
+              <Label htmlFor="shippingCost">Shipping Cost (USD)</Label>
               <Input 
                 id="shippingCost" 
                 type="number" 
                 placeholder="0.00"
-                required
+                value={formData.shippingCost}
+                onChange={(e) => handleInputChange("shippingCost", e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="shippingMethod">Shipping Method *</Label>
-              <Select required>
+              <Label htmlFor="shippingMethod">Shipping Method</Label>
+              <Select 
+                value={formData.shippingMethod}
+                onValueChange={(value) => handleInputChange("shippingMethod", value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select method" />
                 </SelectTrigger>
@@ -264,11 +441,12 @@ export function CreateAuction() {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="location">Item Location *</Label>
+              <Label htmlFor="location">Item Location</Label>
               <Input 
                 id="location" 
                 placeholder="City, State, Country"
-                required
+                value={formData.location}
+                onChange={(e) => handleInputChange("location", e.target.value)}
               />
             </div>
           </div>
@@ -280,11 +458,19 @@ export function CreateAuction() {
             type="button" 
             variant="outline"
             onClick={() => navigate("/dashboard/seller")}
+            disabled={loading}
           >
             Cancel
           </Button>
-          <Button type="submit">
-            Create Auction
+          <Button type="submit" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Auction"
+            )}
           </Button>
         </div>
       </form>

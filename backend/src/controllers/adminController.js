@@ -346,3 +346,89 @@ exports.getAllAdmins = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Submit auction for approval (Admin → Super Admin)
+exports.submitAuctionForApproval = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    if (auction.approvalStatus !== "PENDING") {
+      return res.status(400).json({ message: "Auction already submitted or processed" });
+    }
+
+    auction.approvalStatus = "SUBMITTED";
+    auction.reviewedBy = req.user._id;
+    await auction.save();
+
+    res.json({
+      message: "Auction submitted for Super Admin approval",
+      auction
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Approve auction (Super Admin only)
+exports.approveAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admin can approve auctions" });
+    }
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    auction.approvalStatus = "APPROVED";
+    auction.status = "ACTIVE";
+    auction.reviewedBy = req.user._id;
+    await auction.save();
+
+    res.json({
+      message: "Auction approved successfully",
+      auction
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Reject auction (Super Admin only)
+exports.rejectAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admin can reject auctions" });
+    }
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    auction.approvalStatus = "REJECTED";
+    auction.status = "REJECTED";
+    auction.rejectionReason = reason;
+    auction.reviewedBy = req.user._id;
+    await auction.save();
+
+    res.json({
+      message: "Auction rejected",
+      auction
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

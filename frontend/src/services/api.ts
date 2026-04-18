@@ -10,7 +10,9 @@ const getAuthToken = () => {
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || 'Request failed');
+    const err: any = new Error(error.message || 'Request failed');
+    err.response = { data: error };
+    throw err;
   }
   return response.json();
 };
@@ -64,14 +66,22 @@ export const api = {
     
     getById: (id: string) => apiRequest(`/auctions/${id}`),
     
-    create: (formData: FormData) =>
-      apiRequest('/auctions', {
+    create: (formData: FormData) => {
+      const token = getAuthToken();
+      console.log("Token for auction creation:", token ? "Present" : "Missing");
+      
+      if (!token) {
+        throw new Error("No authentication token found. Please login again.");
+      }
+      
+      return fetch(`${API_BASE_URL}/auctions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${getAuthToken()}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: formData,
-      }).then(handleResponse),
+      }).then(handleResponse);
+    },
   },
 
   // Bidding
@@ -200,7 +210,7 @@ export const api = {
         method: 'DELETE',
       }),
     
-    getAllAuctions: (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
+    getAllAuctions: (params?: { page?: number; limit?: number; status?: string; search?: string; approvalStatus?: string }) => {
       const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
       return apiRequest(`/admin/auctions${queryString}`);
     },
@@ -208,6 +218,22 @@ export const api = {
     deleteAuction: (id: string) => 
       apiRequest(`/admin/auctions/${id}`, {
         method: 'DELETE',
+      }),
+    
+    submitAuctionForApproval: (id: string) =>
+      apiRequest(`/admin/auctions/${id}/submit`, {
+        method: 'POST',
+      }),
+    
+    approveAuction: (id: string) =>
+      apiRequest(`/admin/auctions/${id}/approve`, {
+        method: 'POST',
+      }),
+    
+    rejectAuction: (id: string, reason: string) =>
+      apiRequest(`/admin/auctions/${id}/reject`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
       }),
     
     getAllDisputes: (params?: { page?: number; limit?: number; status?: string }) => {
@@ -227,6 +253,35 @@ export const api = {
       }),
     
     getAllAdmins: () => apiRequest('/admin/admins'),
+  },
+
+  // Announcements
+  announcements: {
+    getAll: (params?: { visibility?: string; isActive?: boolean }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/announcements${queryString}`);
+    },
+    
+    getPublic: () => apiRequest('/announcements/public?isActive=true'),
+    
+    getById: (id: string) => apiRequest(`/announcements/${id}`),
+    
+    create: (data: { title: string; content: string; visibility?: string }) =>
+      apiRequest('/announcements', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    
+    update: (id: string, data: { title?: string; content?: string; visibility?: string; isActive?: boolean }) =>
+      apiRequest(`/announcements/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    
+    delete: (id: string) =>
+      apiRequest(`/announcements/${id}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Profile endpoints

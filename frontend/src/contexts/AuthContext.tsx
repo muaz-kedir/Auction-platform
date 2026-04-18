@@ -42,8 +42,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login for:', email);
+      console.log('API URL:', import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+      
       const response = await api.auth.login({ email, password });
+      console.log('Login response:', response);
+      
       const { token: newToken, user: newUser } = response;
+      
+      if (!newToken || !newUser) {
+        throw new Error('Invalid response from server');
+      }
       
       // Ensure user has id field (use _id if id doesn't exist)
       const userWithId = {
@@ -51,12 +60,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: newUser.id || newUser._id
       };
       
+      console.log('Storing user:', userWithId);
       localStorage.setItem('token', newToken);
       localStorage.setItem('user', JSON.stringify(userWithId));
       
       setToken(newToken);
       setUser(userWithId);
-    } catch (error) {
+      
+      console.log('Login successful');
+    } catch (error: any) {
+      console.error('Login error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
       throw error;
     }
   };

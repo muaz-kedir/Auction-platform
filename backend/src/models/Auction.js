@@ -41,9 +41,22 @@ endTime: Date,
 
 status: {
 type: String,
-enum: ["ACTIVE", "ENDED"],
-default: "ACTIVE"
-}
+enum: ["PENDING", "SUBMITTED", "ACTIVE", "ENDED", "REJECTED"],
+default: "PENDING"
+},
+
+approvalStatus: {
+type: String,
+enum: ["PENDING", "SUBMITTED", "APPROVED", "REJECTED"],
+default: "PENDING"
+},
+
+reviewedBy: {
+type: mongoose.Schema.Types.ObjectId,
+ref: "User"
+},
+
+rejectionReason: String
 },
 { timestamps: true }
 );

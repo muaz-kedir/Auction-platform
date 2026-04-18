@@ -26,7 +26,7 @@ export function AuctionCard({
   isLive = false,
 }: AuctionCardProps) {
   return (
-    <Link to={`/dashboard/auctions/${id}`}>
+    <Link to={`/auction/${id}`}>
       <motion.div
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2 }}

@@ -14,68 +14,9 @@ import {
   CheckCircle2,
   Sparkles
 } from "lucide-react";
-import { AuctionCard } from "../components/auction/AuctionCard";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
-
-const featuredAuctions = [
-  {
-    id: "1",
-    title: "Luxury Swiss Automatic Watch - Limited Edition",
-    image: "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjB3YXRjaCUyMGF1Y3Rpb258ZW58MXx8fHwxNzc2MDk3MzI4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 5420,
-    timeLeft: "2h 34m",
-    bids: 42,
-    category: "Watches",
-    isLive: true,
-  },
-  {
-    id: "2",
-    title: "Latest Smartphone Pro Max 512GB",
-    image: "https://images.unsplash.com/photo-1717996563514-e3519f9ef9f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBlbGVjdHJvbmljcyUyMGdhZGdldHxlbnwxfHx8fDE3NzU5OTkwMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 899,
-    timeLeft: "5h 12m",
-    bids: 28,
-    category: "Electronics",
-  },
-  {
-    id: "3",
-    title: "Vintage Film Camera Collection",
-    image: "https://images.unsplash.com/photo-1678958169679-42e6ca5785e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aW50YWdlJTIwY2FtZXJhJTIwY29sbGVjdGlvbnxlbnwxfHx8fDE3NzYwODUzNzl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 1250,
-    timeLeft: "1d 8h",
-    bids: 15,
-    category: "Collectibles",
-  },
-  {
-    id: "4",
-    title: "Luxury Sports Car 2023 Model",
-    image: "https://images.unsplash.com/photo-1694380975491-6cca2b30e26c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsdXh1cnklMjBjYXIlMjBhdXRvbW9iaWxlfGVufDF8fHx8MTc3NjA5NzMyOHww&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 45000,
-    timeLeft: "3d 5h",
-    bids: 67,
-    category: "Vehicles",
-    isLive: true,
-  },
-  {
-    id: "5",
-    title: "Contemporary Abstract Art Painting",
-    image: "https://images.unsplash.com/photo-1667980898743-fcfe470b7d2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb250ZW1wb3JhcnklMjBhcnQlMjBwYWludGluZ3xlbnwxfHx8fDE3NzYwOTczMjl8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 2800,
-    timeLeft: "12h 45m",
-    bids: 23,
-    category: "Art",
-  },
-  {
-    id: "6",
-    title: "Diamond Engagement Ring 2.5ct",
-    image: "https://images.unsplash.com/photo-1774504347388-3d01f7cac097?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGpld2VscnklMjBkaWFtb25kfGVufDF8fHx8MTc3NjA5NzMyOXww&ixlib=rb-4.1.0&q=80&w=1080",
-    currentBid: 8900,
-    timeLeft: "6h 20m",
-    bids: 34,
-    category: "Jewelry",
-  },
-];
+import { FeaturedAuctions } from "../components/FeaturedAuctions";
 
 const categories = [
   { name: "Electronics", icon: Zap, color: "text-blue-500" },
@@ -245,18 +186,7 @@ export function LandingPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredAuctions.map((auction, index) => (
-              <motion.div
-                key={auction.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-              >
-                <AuctionCard {...auction} />
-              </motion.div>
-            ))}
-          </div>
+          <FeaturedAuctions />
         </div>
       </section>
 

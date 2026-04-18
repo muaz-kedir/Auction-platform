@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useLocation } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -18,6 +18,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +32,10 @@ export function LoginPage() {
     try {
       await login(email, password);
       toast.success("Login successful!");
-      navigate("/dashboard");
+      
+      // Redirect to the page they were trying to access, or dashboard
+      const from = (location.state as any)?.from?.pathname || "/dashboard";
+      navigate(from, { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.response?.data?.message || "Invalid credentials");

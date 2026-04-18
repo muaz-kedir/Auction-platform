@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const { isCloudinaryConfigured } = require("../middleware/cloudinaryUpload");
 
 // Get current user profile
 exports.getProfile = async (req, res) => {
@@ -50,7 +51,13 @@ exports.updateProfile = async (req, res) => {
 
     // Handle profile image upload
     if (req.file) {
-      user.profileImage = `/uploads/${req.file.filename}`;
+      if (req.file.path) {
+        // Cloudinary URL
+        user.profileImage = req.file.path;
+      } else if (req.file.filename) {
+        // Local file path
+        user.profileImage = `/uploads/${req.file.filename}`;
+      }
     }
 
     await user.save();
@@ -87,7 +94,14 @@ exports.uploadProfileImage = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.profileImage = `/uploads/${req.file.filename}`;
+    if (req.file.path) {
+      // Cloudinary URL
+      user.profileImage = req.file.path;
+    } else if (req.file.filename) {
+      // Local file path
+      user.profileImage = `/uploads/${req.file.filename}`;
+    }
+    
     await user.save();
 
     res.json({

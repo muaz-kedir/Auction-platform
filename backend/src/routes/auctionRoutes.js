@@ -8,18 +8,12 @@ getAuctionById
 } = require("../controllers/auctionController");
 
 const { protect: auth } = require("../middleware/authMiddleware");
-const upload = require("../middleware/upload");
+const { auctionUpload } = require("../middleware/cloudinaryUpload");
 
 router.post(
 "/",
 auth,
-(req, res, next) => {
-// If no files, skip upload middleware
-if (!req.headers['content-type']?.includes('multipart/form-data')) {
-return next();
-}
-upload.array("images", 5)(req, res, next);
-},
+auctionUpload.array("images", 5),
 createAuction
 );
 
