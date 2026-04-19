@@ -179,7 +179,7 @@ export function LandingPage() {
               <h2 className="text-3xl font-bold mb-2">Featured Auctions</h2>
               <p className="text-muted-foreground">Discover trending items ending soon</p>
             </div>
-            <Link to="/dashboard/auctions">
+            <Link to="/auctions">
               <Button variant="outline" className="gap-2">
                 View All <ArrowRight className="h-4 w-4" />
               </Button>

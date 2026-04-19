@@ -3,6 +3,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardLayout } from "./layouts/DashboardLayout";
+import { SimpleLayout } from "./layouts/SimpleLayout";
 import { Dashboard } from "./pages/Dashboard";
 import { AuctionListing } from "./pages/AuctionListing";
 import { AuctionDetail } from "./pages/AuctionDetail";
@@ -34,10 +35,17 @@ export const router = createBrowserRouter([
     Component: RegisterPage,
   },
   {
+    path: "/auctions",
+    element: <SimpleLayout />,
+    children: [
+      { index: true, Component: AuctionListing },
+    ],
+  },
+  {
     path: "/auction/:id",
     element: (
       <ProtectedRoute>
-        <DashboardLayout />
+        <SimpleLayout />
       </ProtectedRoute>
     ),
     children: [

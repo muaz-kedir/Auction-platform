@@ -1,5 +1,6 @@
 // API Base Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_PREFIX = '/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -32,7 +33,7 @@ const apiRequest = async (
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${API_PREFIX}${endpoint}`, {
     ...options,
     headers,
   });
@@ -74,7 +75,7 @@ export const api = {
         throw new Error("No authentication token found. Please login again.");
       }
       
-      return fetch(`${API_BASE_URL}/auctions`, {
+      return fetch(`${API_BASE_URL}${API_PREFIX}/auctions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -290,7 +291,7 @@ export const api = {
     
     updateProfile: (formData: FormData) => {
       const token = getAuthToken();
-      return fetch(`${API_BASE_URL}/profile`, {
+      return fetch(`${API_BASE_URL}${API_PREFIX}/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -301,7 +302,7 @@ export const api = {
     
     uploadImage: (formData: FormData) => {
       const token = getAuthToken();
-      return fetch(`${API_BASE_URL}/profile/upload-image`, {
+      return fetch(`${API_BASE_URL}${API_PREFIX}/profile/upload-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

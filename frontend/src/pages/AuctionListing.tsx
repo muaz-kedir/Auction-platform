@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { AuctionCard } from "../components/auction/AuctionCard";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
@@ -14,109 +15,131 @@ import { Slider } from "../components/ui/slider";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
-const auctions = [
-  {
-    id: "1",
-    title: "Luxury Swiss Automatic Watch - Limited Edition",
-    image: "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop",
-    currentBid: 5420,
-    timeLeft: "2h 34m",
-    bids: 42,
-    category: "Watches",
-    isLive: true,
-  },
-  {
-    id: "2",
-    title: "Latest Smartphone Pro Max 512GB",
-    image: "https://images.unsplash.com/photo-1717996563514-e3519f9ef9f7?w=400&h=300&fit=crop",
-    currentBid: 899,
-    timeLeft: "5h 12m",
-    bids: 28,
-    category: "Electronics",
-  },
-  {
-    id: "3",
-    title: "Vintage Film Camera Collection",
-    image: "https://images.unsplash.com/photo-1678958169679-42e6ca5785e3?w=400&h=300&fit=crop",
-    currentBid: 1250,
-    timeLeft: "1d 8h",
-    bids: 15,
-    category: "Collectibles",
-  },
-  {
-    id: "4",
-    title: "Luxury Sports Car 2023 Model",
-    image: "https://images.unsplash.com/photo-1694380975491-6cca2b30e26c?w=400&h=300&fit=crop",
-    currentBid: 45000,
-    timeLeft: "3d 5h",
-    bids: 67,
-    category: "Vehicles",
-    isLive: true,
-  },
-  {
-    id: "5",
-    title: "Contemporary Abstract Art Painting",
-    image: "https://images.unsplash.com/photo-1667980898743-fcfe470b7d2a?w=400&h=300&fit=crop",
-    currentBid: 2800,
-    timeLeft: "12h 45m",
-    bids: 23,
-    category: "Art",
-  },
-  {
-    id: "6",
-    title: "Diamond Engagement Ring 2.5ct",
-    image: "https://images.unsplash.com/photo-1774504347388-3d01f7cac097?w=400&h=300&fit=crop",
-    currentBid: 8900,
-    timeLeft: "6h 20m",
-    bids: 34,
-    category: "Jewelry",
-  },
-  {
-    id: "7",
-    title: "Professional DSLR Camera with Lens Kit",
-    image: "https://images.unsplash.com/photo-1678958169679-42e6ca5785e3?w=400&h=300&fit=crop",
-    currentBid: 1850,
-    timeLeft: "8h 15m",
-    bids: 19,
-    category: "Electronics",
-  },
-  {
-    id: "8",
-    title: "Vintage Rolex Submariner 1960s",
-    image: "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop",
-    currentBid: 12500,
-    timeLeft: "2d 3h",
-    bids: 89,
-    category: "Watches",
-    isLive: true,
-  },
-  {
-    id: "9",
-    title: "Gaming Laptop RTX 4090 32GB RAM",
-    image: "https://images.unsplash.com/photo-1717996563514-e3519f9ef9f7?w=400&h=300&fit=crop",
-    currentBid: 2199,
-    timeLeft: "15h 30m",
-    bids: 45,
-    category: "Electronics",
-  },
-];
+interface Auction {
+  _id: string;
+  title: string;
+  description: string;
+  images: string[];
+  currentBid: number;
+  startingBid: number;
+  endTime: string;
+  status: string;
+  approvalStatus: string;
+  seller: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  category?: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+}
 
-const categories = ["All", "Electronics", "Watches", "Art", "Vehicles", "Jewelry", "Collectibles"];
+interface Category {
+  _id: string;
+  name: string;
+}
 
 export function AuctionListing() {
+  const navigate = useNavigate();
+  const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState("ending-soon");
+
+  useEffect(() => {
+    fetchAuctions();
+    fetchCategories();
+  }, []);
+
+  const fetchAuctions = async () => {
+    try {
+      setLoading(true);
+      const data = await api.auctions.getAll();
+      // Filter only APPROVED and ACTIVE auctions
+      const approvedAuctions = data.filter(
+        (auction: Auction) => 
+          auction.approvalStatus === "APPROVED" && 
+          auction.status === "ACTIVE"
+      );
+      setAuctions(approvedAuctions);
+    } catch (error: any) {
+      console.error("Failed to fetch auctions:", error);
+      toast.error("Failed to load auctions");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.categories.getAll();
+      setCategories(data);
+    } catch (error: any) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  const calculateTimeLeft = (endTime: string) => {
+    const end = new Date(endTime).getTime();
+    const now = new Date().getTime();
+    const diff = end - now;
+
+    if (diff <= 0) return "Ended";
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  };
+
+  const processImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&h=300&fit=crop";
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    if (imageUrl.startsWith('/uploads/')) {
+      return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
+    }
+    return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${imageUrl}`;
+  };
 
   const filteredAuctions = auctions.filter((auction) => {
-    const matchesCategory = selectedCategory === "All" || auction.category === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || auction.category?.name === selectedCategory;
     const matchesPrice = auction.currentBid >= priceRange[0] && auction.currentBid <= priceRange[1];
     const matchesSearch = auction.title.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesPrice && matchesSearch;
   });
+
+  // Sort auctions
+  const sortedAuctions = [...filteredAuctions].sort((a, b) => {
+    switch (sortBy) {
+      case "ending-soon":
+        return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+      case "newly-listed":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      case "price-low":
+        return a.currentBid - b.currentBid;
+      case "price-high":
+        return b.currentBid - a.currentBid;
+      default:
+        return 0;
+    }
+  });
+
+  const allCategories = ["All", ...categories.map(cat => cat.name)];
 
   return (
     <div className="space-y-6">
@@ -142,7 +165,7 @@ export function AuctionListing() {
 
           {/* Category Filter */}
           <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <Badge
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
@@ -159,7 +182,7 @@ export function AuctionListing() {
           </div>
 
           {/* Sort */}
-          <Select defaultValue="ending-soon">
+          <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full lg:w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -168,7 +191,6 @@ export function AuctionListing() {
               <SelectItem value="newly-listed">Newly Listed</SelectItem>
               <SelectItem value="price-low">Price: Low to High</SelectItem>
               <SelectItem value="price-high">Price: High to Low</SelectItem>
-              <SelectItem value="most-bids">Most Bids</SelectItem>
             </SelectContent>
           </Select>
 
@@ -224,14 +246,14 @@ export function AuctionListing() {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredAuctions.length} {filteredAuctions.length === 1 ? "auction" : "auctions"}
+          Showing {sortedAuctions.length} {sortedAuctions.length === 1 ? "auction" : "auctions"}
         </p>
         <Badge variant="outline" className="gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
           </span>
-          {auctions.filter(a => a.isLive).length} Live Auctions
+          {auctions.length} Live Auctions
         </Badge>
       </div>
 
@@ -249,10 +271,19 @@ export function AuctionListing() {
             </Card>
           ))}
         </div>
-      ) : filteredAuctions.length > 0 ? (
+      ) : sortedAuctions.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAuctions.map((auction) => (
-            <AuctionCard key={auction.id} {...auction} />
+          {sortedAuctions.map((auction) => (
+            <AuctionCard 
+              key={auction._id} 
+              id={auction._id}
+              title={auction.title}
+              image={processImageUrl(auction.images[0])}
+              currentBid={auction.currentBid}
+              timeLeft={calculateTimeLeft(auction.endTime)}
+              category={auction.category?.name || "Uncategorized"}
+              isLive={auction.status === "ACTIVE"}
+            />
           ))}
         </div>
       ) : (
@@ -278,9 +309,9 @@ export function AuctionListing() {
       )}
 
       {/* Load More */}
-      {filteredAuctions.length > 0 && (
+      {sortedAuctions.length > 0 && sortedAuctions.length >= 9 && (
         <div className="flex justify-center pt-6">
-          <Button variant="outline" size="lg">
+          <Button variant="outline" size="lg" onClick={fetchAuctions}>
             Load More Auctions
           </Button>
         </div>

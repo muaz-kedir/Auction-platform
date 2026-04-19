@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router";
+import { useParams, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
 import { CountdownTimer } from "../components/auction/CountdownTimer";
-import { AuctionCard } from "../components/auction/AuctionCard";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import {
   Heart,
   Share2,
@@ -24,9 +24,8 @@ import {
   Loader2,
   ArrowLeft
 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
 
 interface Auction {
   _id: string;
@@ -53,7 +52,6 @@ interface Auction {
 export function AuctionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [auction, setAuction] = useState<Auction | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -143,11 +141,24 @@ export function AuctionDetail() {
 
   const endTime = new Date(auction.endTime);
   const minBid = auction.currentBid + 10;
-  const images = auction.images.length > 0 
-    ? auction.images 
+  
+  // Process images - handle both Cloudinary URLs and local paths
+  const processedImages = auction.images && auction.images.length > 0 
+    ? auction.images.map(img => {
+        // If it's already a full URL (Cloudinary), use it as is
+        if (img.startsWith('http://') || img.startsWith('https://')) {
+          return img;
+        }
+        // If it's a local path, prepend the API URL
+        if (img.startsWith('/uploads/')) {
+          return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+        }
+        // Otherwise, assume it's just a filename
+        return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${img}`;
+      })
     : ["https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&h=600&fit=crop"];
+  
   const isActive = auction.status === "ACTIVE";
-  const timeLeft = calculateTimeLeft(auction.endTime);
 
   return (
     <div className="space-y-8">
@@ -161,13 +172,13 @@ export function AuctionDetail() {
         Back to Auctions
       </Button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Images */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column - Images (5 columns) */}
+        <div className="lg:col-span-5 space-y-4">
           <Card className="overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
             <div className="relative aspect-[4/3] bg-muted">
-              <img
-                src={images[selectedImage]}
+              <ImageWithFallback
+                src={processedImages[selectedImage]}
                 alt={auction.title}
                 className="w-full h-full object-cover"
               />
@@ -208,9 +219,9 @@ export function AuctionDetail() {
                 </Button>
               </div>
             </div>
-            {images.length > 1 && (
+            {processedImages.length > 1 && (
               <div className="p-4 flex gap-2 overflow-x-auto">
-                {images.map((image, index) => (
+                {processedImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -220,7 +231,7 @@ export function AuctionDetail() {
                         : "border-transparent hover:border-muted-foreground/50"
                     }`}
                   >
-                    <img src={image} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={image} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -297,8 +308,8 @@ export function AuctionDetail() {
           </Card>
         </div>
 
-        {/* Right Column - Bidding */}
-        <div className="space-y-4">
+        {/* Middle Column - Bidding (4 columns) */}
+        <div className="lg:col-span-4 space-y-4">
           {/* Countdown */}
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
             <div className="space-y-4">
@@ -457,6 +468,68 @@ export function AuctionDetail() {
                   <p className="text-sm font-medium">Authenticity Guaranteed</p>
                   <p className="text-xs text-muted-foreground">30-day money-back guarantee</p>
                 </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column - Recent Activity (3 columns) */}
+        <div className="lg:col-span-3 space-y-4">
+          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
+            <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
+            <div className="space-y-4">
+              {/* Bid Activity */}
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <Gavel className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Bid placed</p>
+                  <p className="text-xs text-muted-foreground mt-1">5 min ago</p>
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap">${auction.currentBid.toLocaleString()}</span>
+              </div>
+
+              <Separator />
+
+              {/* Outbid Activity */}
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-4 w-4 text-red-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Outbid</p>
+                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap">$1,180</span>
+              </div>
+
+              <Separator />
+
+              {/* Won Activity */}
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Won auction</p>
+                  <p className="text-xs text-muted-foreground mt-1">3 hours ago</p>
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap">$2,800</span>
+              </div>
+
+              <Separator />
+
+              {/* Payment Activity */}
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-full bg-gray-500/10 flex items-center justify-center flex-shrink-0">
+                  <Package className="h-4 w-4 text-gray-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Payment received</p>
+                  <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap">$950</span>
               </div>
             </div>
           </Card>
