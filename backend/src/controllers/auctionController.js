@@ -1,6 +1,4 @@
 const Auction = require("../models/Auction");
-
-const Auction = require("../models/Auction");
 const { isCloudinaryConfigured } = require("../middleware/cloudinaryUpload");
 
 exports.createAuction = async (req, res) => {
