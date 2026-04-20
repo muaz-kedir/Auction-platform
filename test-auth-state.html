@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth State</title>
+</head>
+<body>
+    <h1>Authentication State Test</h1>
+    <div id="result"></div>
+    
+    <script>
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        
+        const resultDiv = document.getElementById('result');
+        
+        if (token) {
+            resultDiv.innerHTML = `
+                <p style="color: green;"><strong>User is LOGGED IN</strong></p>
+                <p><strong>Token:</strong> ${token.substring(0, 50)}...</p>
+                <p><strong>User Data:</strong> ${user}</p>
+                <button onclick="logout()">Logout</button>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <p style="color: red;"><strong>User is NOT logged in</strong></p>
+                <p>No token found in localStorage</p>
+            `;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            alert('Logged out! Refresh the page.');
+            location.reload();
+        }
+    </script>
+</body>
+</html>

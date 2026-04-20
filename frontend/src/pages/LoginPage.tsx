@@ -4,7 +4,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
-import { Gavel, Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Gavel, Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -19,6 +20,10 @@ export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Check if user was redirected from an auction page
+  const fromAuction = (location.state as any)?.from?.pathname?.includes('/auction');
+  const returnUrl = (location.state as any)?.from?.pathname;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +65,19 @@ export function LoginPage() {
         className="w-full max-w-md relative"
       >
         <Card className="p-8 border-border/50 bg-card/50 backdrop-blur-sm">
+          {/* Alert for auction redirect */}
+          {fromAuction && (
+            <Alert className="mb-6 border-primary/50 bg-primary/10">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                <span className="font-semibold">Login Required to Place Bids</span>
+                <p className="mt-1 text-muted-foreground">
+                  Please sign in or create an account to participate in auctions and place bids.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link to="/" className="flex items-center gap-2">
@@ -169,7 +187,11 @@ export function LoginPage() {
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline font-medium">
+            <Link 
+              to="/register" 
+              state={{ from: location.state?.from }}
+              className="text-primary hover:underline font-medium"
+            >
               Sign up
             </Link>
           </p>

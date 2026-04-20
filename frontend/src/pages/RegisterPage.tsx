@@ -1,17 +1,66 @@
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Card } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
-import { Gavel, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Gavel, Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { useAuth } from "../contexts/AuthContext";
+import { toast } from "sonner";
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if user was redirected from an auction page
+  const fromAuction = (location.state as any)?.from?.pathname?.includes('/auction');
+  const returnUrl = (location.state as any)?.from?.pathname;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !email || !password || !confirmPassword) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await register(name, email, password);
+      toast.success("Account created successfully!");
+      
+      // Redirect to the page they were trying to access, or dashboard
+      const from = returnUrl || "/dashboard";
+      navigate(from, { replace: true });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast.error(error.response?.data?.message || "Registration failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -29,6 +78,19 @@ export function RegisterPage() {
         className="w-full max-w-md relative"
       >
         <Card className="p-8 border-border/50 bg-card/50 backdrop-blur-sm">
+          {/* Alert for auction redirect */}
+          {fromAuction && (
+            <Alert className="mb-6 border-primary/50 bg-primary/10">
+              <AlertCircle className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                <span className="font-semibold">Create Account to Place Bids</span>
+                <p className="mt-1 text-muted-foreground">
+                  Sign up now to participate in auctions and start bidding on amazing items!
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Link to="/" className="flex items-center gap-2">
@@ -73,7 +135,7 @@ export function RegisterPage() {
           </div>
 
           {/* Register Form */}
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">
@@ -83,6 +145,10 @@ export function RegisterPage() {
                   type="text" 
                   placeholder="John Doe"
                   className="pl-10"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -96,6 +162,10 @@ export function RegisterPage() {
                   type="email" 
                   placeholder="john@example.com"
                   className="pl-10"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
               </div>
             </div>
@@ -109,6 +179,10 @@ export function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="pl-10 pr-10"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
@@ -133,6 +207,10 @@ export function RegisterPage() {
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   className="pl-10 pr-10"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                  required
                 />
                 <button
                   type="button"
@@ -149,7 +227,7 @@ export function RegisterPage() {
             </div>
 
             <div className="flex items-start gap-2">
-              <Checkbox id="terms" className="mt-1" />
+              <Checkbox id="terms" className="mt-1" required />
               <label htmlFor="terms" className="text-sm cursor-pointer text-muted-foreground">
                 I agree to the{" "}
                 <a href="#" className="text-primary hover:underline">Terms of Service</a>
@@ -158,16 +236,18 @@ export function RegisterPage() {
               </label>
             </div>
 
-            <Link to="/dashboard">
-              <Button className="w-full" size="lg">
-                Create Account
-              </Button>
-            </Link>
+            <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-primary hover:underline font-medium">
+            <Link 
+              to="/login" 
+              state={{ from: location.state?.from }}
+              className="text-primary hover:underline font-medium"
+            >
               Sign in
             </Link>
           </p>

@@ -2,7 +2,9 @@ import { Clock, TrendingUp, Users } from "lucide-react";
 import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { motion } from "motion/react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
+import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "sonner";
 
 interface AuctionCardProps {
   id: string;
@@ -25,8 +27,27 @@ export function AuctionCard({
   category,
   isLive = false,
 }: AuctionCardProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user) {
+      // Save the auction URL for redirect after login
+      toast.info("Please login or register to view and bid on auctions");
+      navigate("/login", { 
+        state: { from: { pathname: `/auction/${id}` } }
+      });
+    } else {
+      // User is authenticated, navigate to auction
+      navigate(`/auction/${id}`);
+    }
+  };
+
   return (
-    <Link to={`/auction/${id}`}>
+    <div onClick={handleClick} className="cursor-pointer">
       <motion.div
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2 }}
@@ -88,6 +109,6 @@ export function AuctionCard({
           </div>
         </Card>
       </motion.div>
-    </Link>
+    </div>
   );
 }
