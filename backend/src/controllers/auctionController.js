@@ -97,40 +97,60 @@ exports.createAuction = async (req, res) => {
 };
 
 exports.getAuctions = async (req, res) => {
-try {
+  try {
+    const { search, category, min, max, status, seller, includeAll } = req.query;
 
-const { search, category, min, max } = req.query;
+    let filter = {};
 
-let filter = {};
+    // By default, only show ACTIVE auctions to public
+    // If user is authenticated and requests their own auctions, show all
+    // If user is super_admin and includeAll is true, show all
+    const isAuthenticated = !!req.user;
+    const isSuperAdmin = isAuthenticated && req.user.role === "super_admin";
+    const isOwnAuctions = isAuthenticated && seller === req.user._id.toString();
 
-if (search) {
-filter.title = {
-$regex: search,
-$options: "i"
-};
-}
+    if (!isSuperAdmin && !isOwnAuctions && !includeAll) {
+      // Public users only see ACTIVE auctions
+      filter.status = "ACTIVE";
+    }
 
-if (category) {
-filter.category = category;
-}
+    // If specific status requested
+    if (status) {
+      filter.status = status;
+    }
 
-if (min || max) {
-filter.currentBid = {};
+    // If seller requested (for My Auctions page)
+    if (seller && isOwnAuctions) {
+      filter.seller = seller;
+    }
 
-if (min) filter.currentBid.$gte = min;
-if (max) filter.currentBid.$lte = max;
-}
+    if (search) {
+      filter.title = {
+        $regex: search,
+        $options: "i"
+      };
+    }
 
-const auctions = await Auction.find(filter)
-.populate("seller")
-.populate("category")
-.sort({ createdAt: -1 });
+    if (category) {
+      filter.category = category;
+    }
 
-res.json(auctions);
+    if (min || max) {
+      filter.currentBid = {};
+      if (min) filter.currentBid.$gte = Number(min);
+      if (max) filter.currentBid.$lte = Number(max);
+    }
 
-} catch (error) {
-res.status(500).json({ error: error.message });
-}
+    const auctions = await Auction.find(filter)
+      .populate("seller")
+      .populate("category")
+      .sort({ createdAt: -1 });
+
+    res.json(auctions);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 exports.getAuctionById = async (req, res) => {
@@ -145,4 +165,93 @@ res.json(auction);
 } catch (error) {
 res.status(500).json({ error: error.message });
 }
+};
+
+// Approve auction (Super Admin only)
+exports.approveAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Only super_admin can approve
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admin can approve auctions" });
+    }
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    // Update auction status
+    auction.approvalStatus = "APPROVED";
+    auction.status = "ACTIVE";
+    auction.reviewedBy = req.user._id;
+    auction.rejectionReason = undefined; // Clear any previous rejection reason
+
+    await auction.save();
+
+    res.json({
+      message: "Auction approved successfully",
+      auction
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Reject auction (Super Admin only)
+exports.rejectAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    // Only super_admin can reject
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admin can reject auctions" });
+    }
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    // Update auction status
+    auction.approvalStatus = "REJECTED";
+    auction.status = "REJECTED";
+    auction.reviewedBy = req.user._id;
+    auction.rejectionReason = reason || "No reason provided";
+
+    await auction.save();
+
+    res.json({
+      message: "Auction rejected",
+      auction
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get pending auctions for approval (Super Admin only)
+exports.getPendingAuctions = async (req, res) => {
+  try {
+    // Only super_admin can view pending auctions
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only Super Admin can view pending auctions" });
+    }
+
+    const auctions = await Auction.find({
+      $or: [
+        { status: "PENDING" },
+        { approvalStatus: "PENDING" }
+      ]
+    })
+    .populate("seller")
+    .populate("category")
+    .sort({ createdAt: -1 });
+
+    res.json(auctions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };

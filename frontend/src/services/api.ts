@@ -60,21 +60,21 @@ export const api = {
 
   // Auctions
   auctions: {
-    getAll: (params?: { search?: string; category?: string; min?: number; max?: number }) => {
+    getAll: (params?: { search?: string; category?: string; min?: number; max?: number; status?: string; seller?: string; includeAll?: boolean }) => {
       const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
       return apiRequest(`/auctions${queryString}`);
     },
-    
+
     getById: (id: string) => apiRequest(`/auctions/${id}`),
-    
+
     create: (formData: FormData) => {
       const token = getAuthToken();
       console.log("Token for auction creation:", token ? "Present" : "Missing");
-      
+
       if (!token) {
         throw new Error("No authentication token found. Please login again.");
       }
-      
+
       return fetch(`${API_BASE_URL}${API_PREFIX}/auctions`, {
         method: 'POST',
         headers: {
@@ -83,6 +83,20 @@ export const api = {
         body: formData,
       }).then(handleResponse);
     },
+
+    // Super Admin only
+    getPending: () => apiRequest('/auctions/admin/pending'),
+
+    approve: (id: string) =>
+      apiRequest(`/auctions/${id}/approve`, {
+        method: 'PUT',
+      }),
+
+    reject: (id: string, reason?: string) =>
+      apiRequest(`/auctions/${id}/reject`, {
+        method: 'PUT',
+        body: JSON.stringify({ reason }),
+      }),
   },
 
   // Bidding
@@ -253,7 +267,33 @@ export const api = {
         body: JSON.stringify(data),
       }),
     
+    createSeller: (data: { name: string; email: string; password: string }) => 
+      apiRequest('/admin/sellers', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    
     getAllAdmins: () => apiRequest('/admin/admins'),
+    
+    // Category Management (Super Admin only)
+    getAllCategories: () => apiRequest('/admin/categories'),
+    
+    createCategory: (name: string) =>
+      apiRequest('/admin/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }),
+    
+    updateCategory: (id: string, name: string) =>
+      apiRequest(`/admin/categories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name }),
+      }),
+    
+    deleteCategory: (id: string) =>
+      apiRequest(`/admin/categories/${id}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Announcements

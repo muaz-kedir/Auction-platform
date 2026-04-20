@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Send, CheckCircle2, XCircle, Loader2, Search, Eye } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -66,12 +66,9 @@ export function AuctionApprovalManagement() {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      const params: any = { limit: 100 };
-      if (searchTerm) params.search = searchTerm;
-      if (statusFilter && statusFilter !== "all") params.approvalStatus = statusFilter;
-
-      const response = await api.admin.getAllAuctions(params);
-      setAuctions(response.auctions);
+      // Get pending auctions from Super Admin endpoint
+      const response = await api.auctions.getPending();
+      setAuctions(response);
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch auctions");
     } finally {
@@ -79,20 +76,11 @@ export function AuctionApprovalManagement() {
     }
   };
 
-  const handleSubmitForApproval = async (auctionId: string) => {
-    try {
-      await api.admin.submitAuctionForApproval(auctionId);
-      toast.success("Auction submitted for Super Admin approval");
-      fetchAuctions();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit auction");
-    }
-  };
 
   const handleApprove = async (auctionId: string) => {
     try {
-      await api.admin.approveAuction(auctionId);
-      toast.success("Auction approved successfully");
+      await api.auctions.approve(auctionId);
+      toast.success("Auction approved successfully! Now visible to buyers.");
       fetchAuctions();
     } catch (error: any) {
       toast.error(error.message || "Failed to approve auction");
@@ -114,7 +102,7 @@ export function AuctionApprovalManagement() {
 
     setRejectLoading(true);
     try {
-      await api.admin.rejectAuction(rejectingAuction._id, rejectionReason);
+      await api.auctions.reject(rejectingAuction._id, rejectionReason);
       toast.success("Auction rejected");
       setRejectDialogOpen(false);
       fetchAuctions();
@@ -244,19 +232,8 @@ export function AuctionApprovalManagement() {
                     <TableCell>{formatDate(auction.createdAt)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {/* Admin can submit pending auctions */}
-                        {!isSuperAdmin && auction.approvalStatus === "PENDING" && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSubmitForApproval(auction._id)}
-                          >
-                            <Send className="h-4 w-4 mr-1" />
-                            Submit
-                          </Button>
-                        )}
-
-                        {/* Super Admin can approve/reject submitted auctions */}
-                        {isSuperAdmin && auction.approvalStatus === "SUBMITTED" && (
+                        {/* Super Admin can approve/reject pending auctions */}
+                        {(auction.approvalStatus === "PENDING" || auction.approvalStatus === "SUBMITTED") && (
                           <>
                             <Button
                               size="sm"

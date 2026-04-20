@@ -5,8 +5,12 @@ const {
 createCategory,
 getCategories
 } = require("../controllers/categoryController");
+const { protect } = require("../middleware/authMiddleware");
+const { superAdminOnly } = require("../middleware/roleMiddleware");
 
-router.post("/", createCategory);
+// Only super admin can create categories
+router.post("/", protect, superAdminOnly, createCategory);
+// Anyone can view categories
 router.get("/", getCategories);
 
 module.exports = router;

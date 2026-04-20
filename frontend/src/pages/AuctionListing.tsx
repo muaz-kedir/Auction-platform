@@ -64,14 +64,9 @@ export function AuctionListing() {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
+      // Backend only returns ACTIVE auctions for public requests
       const data = await api.auctions.getAll();
-      // Filter only APPROVED and ACTIVE auctions
-      const approvedAuctions = data.filter(
-        (auction: Auction) => 
-          auction.approvalStatus === "APPROVED" && 
-          auction.status === "ACTIVE"
-      );
-      setAuctions(approvedAuctions);
+      setAuctions(data);
     } catch (error: any) {
       console.error("Failed to fetch auctions:", error);
       toast.error("Failed to load auctions");

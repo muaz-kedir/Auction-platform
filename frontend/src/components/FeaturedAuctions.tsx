@@ -24,13 +24,9 @@ export function FeaturedAuctions() {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
+      // Backend now only returns ACTIVE auctions for public requests
       const response = await api.auctions.getAll();
-      // Filter for approved and active auctions only
-      const activeAuctions = response.filter(
-        (auction: Auction) =>
-          auction.approvalStatus === "APPROVED" && auction.status === "ACTIVE"
-      );
-      setAuctions(activeAuctions.slice(0, 6)); // Show first 6
+      setAuctions(response.slice(0, 6)); // Show first 6 active auctions
     } catch (error) {
       console.error("Failed to fetch auctions:", error);
     } finally {

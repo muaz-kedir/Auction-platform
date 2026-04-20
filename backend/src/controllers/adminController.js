@@ -5,6 +5,7 @@ const Wallet = require("../models/Wallet");
 const Withdraw = require("../models/Withdraw");
 const Dispute = require("../models/Dispute");
 const Notification = require("../models/Notification");
+const Category = require("../models/Category");
 
 // Get Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
@@ -334,6 +335,49 @@ exports.createAdmin = async (req, res) => {
   }
 };
 
+// Create Seller User (Super Admin only)
+exports.createSeller = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    // Only super_admin can create sellers
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only super admin can create sellers" });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const bcrypt = require("bcryptjs");
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: "seller",
+      verified: true
+    });
+
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt
+    };
+
+    res.status(201).json({
+      message: "Seller created successfully",
+      user: userResponse
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // Get All Admins
 exports.getAllAdmins = async (req, res) => {
   try {
@@ -427,6 +471,109 @@ exports.rejectAuction = async (req, res) => {
       message: "Auction rejected",
       auction
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// ==================== CATEGORY MANAGEMENT ====================
+
+// Create Category (Super Admin only)
+exports.createCategory = async (req, res) => {
+  try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only super admin can create categories" });
+    }
+
+    const { name } = req.body;
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const existingCategory = await Category.findOne({ name: name.trim() });
+    if (existingCategory) {
+      return res.status(400).json({ message: "Category already exists" });
+    }
+
+    const category = await Category.create({ name: name.trim() });
+    res.status(201).json({
+      message: "Category created successfully",
+      category
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get All Categories
+exports.getAllCategories = async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.json({ categories });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Update Category (Super Admin only)
+exports.updateCategory = async (req, res) => {
+  try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only super admin can update categories" });
+    }
+
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const existingCategory = await Category.findOne({ name: name.trim(), _id: { $ne: id } });
+    if (existingCategory) {
+      return res.status(400).json({ message: "Category name already exists" });
+    }
+
+    const category = await Category.findByIdAndUpdate(
+      id,
+      { name: name.trim() },
+      { new: true }
+    );
+
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    res.json({
+      message: "Category updated successfully",
+      category
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Delete Category (Super Admin only)
+exports.deleteCategory = async (req, res) => {
+  try {
+    if (req.user.role !== "super_admin") {
+      return res.status(403).json({ message: "Only super admin can delete categories" });
+    }
+
+    const { id } = req.params;
+
+    // Check if category is used in any auction
+    const auctionCount = await Auction.countDocuments({ category: id });
+    if (auctionCount > 0) {
+      return res.status(400).json({ message: "Cannot delete category - it is used in auctions" });
+    }
+
+    const category = await Category.findByIdAndDelete(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    res.json({ message: "Category deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

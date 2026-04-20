@@ -78,11 +78,9 @@ export function MyAuctions() {
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      const response = await api.auctions.getAll();
-      const myAuctions = response.filter(
-        (auction: Auction) => auction.seller?._id === user?._id || auction.seller === user?._id
-      );
-      setAuctions(myAuctions);
+      // Fetch all auctions for this seller (including pending, approved, rejected)
+      const response = await api.auctions.getAll({ seller: user?._id });
+      setAuctions(response);
     } catch (error: any) {
       console.error("Failed to fetch auctions:", error);
       toast.error("Failed to load auctions");
