@@ -9,6 +9,7 @@ import {
   Plus,
   Clock,
   CheckCircle2,
+  CheckCircle,
   AlertCircle,
   Loader2,
   User,
@@ -43,6 +44,7 @@ interface Auction {
 
 export function SellerDashboard() {
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin";
   const [stats, setStats] = useState<DashboardStats>({
     totalAuctions: 0,
     activeAuctions: 0,
@@ -52,26 +54,73 @@ export function SellerDashboard() {
   });
   const [recentAuctions, setRecentAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
 
+  const handleApprove = async (auctionId: string) => {
+    try {
+      setProcessingId(auctionId);
+      await api.auctions.approve(auctionId);
+      toast.success("Auction approved! Now visible on landing page.");
+      fetchDashboardData(); // Refresh the list
+    } catch (error: any) {
+      console.error("Failed to approve auction:", error);
+      toast.error(error.message || "Failed to approve auction");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleReject = async (auctionId: string) => {
+    try {
+      setProcessingId(auctionId);
+      await api.auctions.reject(auctionId, "Rejected by admin");
+      toast.success("Auction rejected");
+      fetchDashboardData(); // Refresh the list
+    } catch (error: any) {
+      console.error("Failed to reject auction:", error);
+      toast.error(error.message || "Failed to reject auction");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       
-      // Fetch auctions
-      const auctionsResponse = await api.auctions.getAll();
-      const myAuctions = auctionsResponse.filter(
-        (auction: Auction) => auction.seller?._id === user?._id || auction.seller === user?._id
-      );
+      let auctionsResponse;
+      let myAuctions;
+      let pendingAuctions;
+      
+      if (isSuperAdmin) {
+        // Super Admin: Fetch ALL auctions including pending from all sellers
+        auctionsResponse = await api.auctions.getAll({ includeAll: true });
+        myAuctions = auctionsResponse; // Show all auctions
+        // Count all pending auctions from all sellers
+        pendingAuctions = auctionsResponse.filter(
+          (a: Auction) => a.approvalStatus === "PENDING" || a.approvalStatus === "SUBMITTED"
+        );
+      } else {
+        // Regular Seller: Fetch only their own auctions
+        auctionsResponse = await api.auctions.getAll({ 
+          seller: user?._id,
+          includeAll: true
+        });
+        myAuctions = auctionsResponse.filter(
+          (auction: Auction) => auction.seller?._id === user?._id || auction.seller === user?._id
+        );
+        pendingAuctions = myAuctions.filter(
+          (a: Auction) => a.approvalStatus === "PENDING" || a.approvalStatus === "SUBMITTED"
+        );
+      }
 
       // Calculate stats
-      const activeCount = myAuctions.filter((a: Auction) => a.status === "ACTIVE").length;
-      const pendingCount = myAuctions.filter(
-        (a: Auction) => a.approvalStatus === "PENDING" || a.approvalStatus === "SUBMITTED"
-      ).length;
+      const activeCount = auctionsResponse.filter((a: Auction) => a.status === "ACTIVE").length;
+      const pendingCount = pendingAuctions.length;
 
       // Fetch wallet
       let balance = 0;
@@ -92,8 +141,14 @@ export function SellerDashboard() {
         currentBalance: balance,
       });
 
-      // Set recent auctions (last 5)
-      setRecentAuctions(myAuctions.slice(0, 5));
+      // Set recent auctions - Super Admin sees pending auctions first, Seller sees their own
+      if (isSuperAdmin && pendingAuctions.length > 0) {
+        // Super Admin: Show pending auctions first
+        setRecentAuctions(pendingAuctions.slice(0, 5));
+      } else {
+        // Seller: Show their own auctions
+        setRecentAuctions(myAuctions.slice(0, 5));
+      }
     } catch (error: any) {
       console.error("Failed to fetch dashboard data:", error);
       toast.error("Failed to load dashboard data");
@@ -409,7 +464,9 @@ export function SellerDashboard() {
       {/* Recent Auctions */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <div className="p-6 border-b border-border/50 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Recent Auctions</h2>
+          <h2 className="text-xl font-bold">
+            {isSuperAdmin && stats.pendingAuctions > 0 ? "Pending Approval" : "Recent Auctions"}
+          </h2>
           <Link to="/dashboard/seller/auctions">
             <Button variant="outline" size="sm">View All</Button>
           </Link>
@@ -445,7 +502,7 @@ export function SellerDashboard() {
                       {getStatusBadge(auction)}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                       <div>
                         <p className="text-muted-foreground">Current Bid</p>
                         <p className="font-medium text-primary">${auction.currentBid.toLocaleString()}</p>
@@ -455,6 +512,36 @@ export function SellerDashboard() {
                         <p className="font-medium">{calculateTimeLeft(auction.endTime)}</p>
                       </div>
                     </div>
+                    
+                    {/* Approve/Reject buttons for Super Admin on pending auctions */}
+                    {isSuperAdmin && (auction.approvalStatus === "PENDING" || auction.approvalStatus === "SUBMITTED") && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleApprove(auction._id)}
+                          disabled={processingId === auction._id}
+                          className="bg-green-500 hover:bg-green-600"
+                        >
+                          {processingId === auction._id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleReject(auction._id)}
+                          disabled={processingId === auction._id}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

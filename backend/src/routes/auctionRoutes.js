@@ -21,7 +21,21 @@ router.get("/:id", getAuctionById);
 router.post(
   "/",
   auth,
-  auctionUpload.array("images", 5),
+  (req, res, next) => {
+    // Use any() to accept both files and regular form fields
+    const upload = auctionUpload.any();
+    upload(req, res, (err) => {
+      if (err) {
+        console.error("Multer error:", err.message);
+        return res.status(400).json({ error: err.message });
+      }
+      // Move files to req.files if they exist
+      if (req.files && req.files.length > 0) {
+        req.files = req.files.filter(f => f.fieldname === "images");
+      }
+      next();
+    });
+  },
   createAuction
 );
 

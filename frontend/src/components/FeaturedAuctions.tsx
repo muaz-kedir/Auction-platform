@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AuctionCard } from "./auction/AuctionCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { api } from "../services/api";
 
 interface Auction {
@@ -16,17 +16,26 @@ interface Auction {
 export function FeaturedAuctions() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchAuctions();
+    
+    // Auto-refresh every 5 seconds to show newly approved auctions
+    const interval = setInterval(() => {
+      fetchAuctions();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchAuctions = async () => {
     try {
       setLoading(true);
-      // Backend now only returns ACTIVE auctions for public requests
-      const response = await api.auctions.getAll();
+      // Add cache-busting parameter to get fresh data
+      const response = await api.auctions.getAll({ _t: Date.now() });
       setAuctions(response.slice(0, 6)); // Show first 6 active auctions
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch auctions:", error);
     } finally {
@@ -75,20 +84,30 @@ export function FeaturedAuctions() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {auctions.map((auction) => (
-        <AuctionCard
-          key={auction._id}
-          id={auction._id}
-          title={auction.title}
-          image={getImageUrl(auction.images[0])}
-          currentBid={auction.currentBid}
-          timeLeft={calculateTimeLeft(auction.endTime)}
-          bids={0}
-          category={auction.status}
-          isLive={auction.status === "ACTIVE"}
-        />
-      ))}
+    <div className="space-y-4">
+      {/* Refresh indicator */}
+      {lastUpdated && (
+        <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+          <RefreshCw className="h-3 w-3 animate-spin" />
+          <span>Auto-updating every 5 seconds</span>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {auctions.map((auction) => (
+          <AuctionCard
+            key={auction._id}
+            id={auction._id}
+            title={auction.title}
+            image={getImageUrl(auction.images[0])}
+            currentBid={auction.currentBid}
+            timeLeft={calculateTimeLeft(auction.endTime)}
+            bids={0}
+            category={auction.status}
+            isLive={auction.status === "ACTIVE"}
+          />
+        ))}
+      </div>
     </div>
   );
 }

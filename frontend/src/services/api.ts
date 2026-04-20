@@ -10,9 +10,21 @@ const getAuthToken = () => {
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    const err: any = new Error(error.message || 'Request failed');
-    err.response = { data: error };
+    // Try to parse as JSON first, then fall back to text
+    let errorData: any;
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType && contentType.includes('application/json')) {
+      errorData = await response.json().catch(() => ({ message: 'An error occurred' }));
+    } else {
+      // Handle plain text error
+      const textError = await response.text().catch(() => 'An error occurred');
+      errorData = { message: textError || `Error: ${response.status}` };
+    }
+    
+    console.error('API Error:', response.status, errorData);
+    const err: any = new Error(errorData.message || errorData.error || `Request failed: ${response.status}`);
+    err.response = { data: errorData, status: response.status };
     throw err;
   }
   return response.json();

@@ -10,20 +10,24 @@ exports.createAuction = async (req, res) => {
     console.log("Using Cloudinary:", isCloudinaryConfigured());
 
     // Get image URLs - works for both Cloudinary and local storage
-    const images = req.files
-      ? req.files.map(file => {
-          if (file.path) {
-            // Cloudinary returns full URL in file.path
-            console.log("Cloudinary image uploaded:", file.path);
-            return file.path;
-          } else if (file.filename) {
-            // Local storage returns filename
-            console.log("Local image uploaded:", file.filename);
-            return `/uploads/${file.filename}`;
-          }
-          return null;
-        }).filter(Boolean)
-      : [];
+    let images = [];
+    
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(file => {
+        if (file.path && file.path.startsWith('http')) {
+          // Cloudinary returns full URL in file.path
+          console.log("Cloudinary image uploaded:", file.path);
+          return file.path;
+        } else if (file.filename) {
+          // Local storage returns filename
+          console.log("Local image uploaded:", file.filename);
+          return `/uploads/${file.filename}`;
+        }
+        return null;
+      }).filter(Boolean);
+    }
+    
+    console.log("Final images array:", images);
 
     // Get startingBid from either field
     const startingBid = req.body.startingBid || req.body.startingPrice;
@@ -107,9 +111,11 @@ exports.getAuctions = async (req, res) => {
     // If user is super_admin and includeAll is true, show all
     const isAuthenticated = !!req.user;
     const isSuperAdmin = isAuthenticated && req.user.role === "super_admin";
-    const isOwnAuctions = isAuthenticated && seller === req.user._id.toString();
+    const isSeller = isAuthenticated && req.user.role === "seller";
+    const isOwnAuctions = isAuthenticated && seller && seller === req.user._id.toString();
 
-    if (!isSuperAdmin && !isOwnAuctions && !includeAll) {
+    // Allow sellers to see their own auctions, super_admin to see all
+    if (!isSuperAdmin && !isOwnAuctions && !isSeller && !includeAll) {
       // Public users only see ACTIVE auctions
       filter.status = "ACTIVE";
     }
@@ -119,8 +125,12 @@ exports.getAuctions = async (req, res) => {
       filter.status = status;
     }
 
-    // If seller requested (for My Auctions page)
-    if (seller && isOwnAuctions) {
+    // If seller is viewing their own dashboard, show all their auctions
+    if (isSeller && !seller) {
+      // Seller viewing their own dashboard - show all their auctions
+      filter.seller = req.user._id;
+    } else if (seller && isOwnAuctions) {
+      // Explicit request for specific seller's auctions
       filter.seller = seller;
     }
 
@@ -167,15 +177,24 @@ res.status(500).json({ error: error.message });
 }
 };
 
-// Approve auction (Super Admin only)
+// Approve auction (Super Admin and Admin only)
 exports.approveAuction = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Only super_admin can approve
-    if (req.user.role !== "super_admin") {
-      return res.status(403).json({ message: "Only Super Admin can approve auctions" });
+    console.log("=== APPROVE AUCTION ===");
+    console.log("User:", req.user);
+    console.log("User ID:", req.user?._id);
+    console.log("User Role:", req.user?.role);
+    console.log("Auction ID:", id);
+
+    // Only super_admin or admin can approve
+    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+      console.log("ACCESS DENIED - User role is:", req.user.role);
+      return res.status(403).json({ message: "Only Super Admin or Admin can approve auctions" });
     }
+    
+    console.log("ACCESS GRANTED - Approving auction...");
 
     const auction = await Auction.findById(id);
     if (!auction) {
@@ -199,15 +218,15 @@ exports.approveAuction = async (req, res) => {
   }
 };
 
-// Reject auction (Super Admin only)
+// Reject auction (Super Admin and Admin only)
 exports.rejectAuction = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
 
-    // Only super_admin can reject
-    if (req.user.role !== "super_admin") {
-      return res.status(403).json({ message: "Only Super Admin can reject auctions" });
+    // Only super_admin or admin can reject
+    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only Super Admin or Admin can reject auctions" });
     }
 
     const auction = await Auction.findById(id);
@@ -232,12 +251,12 @@ exports.rejectAuction = async (req, res) => {
   }
 };
 
-// Get pending auctions for approval (Super Admin only)
+// Get pending auctions for approval (Super Admin and Admin only)
 exports.getPendingAuctions = async (req, res) => {
   try {
-    // Only super_admin can view pending auctions
-    if (req.user.role !== "super_admin") {
-      return res.status(403).json({ message: "Only Super Admin can view pending auctions" });
+    // Only super_admin or admin can view pending auctions
+    if (req.user.role !== "super_admin" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Only Super Admin or Admin can view pending auctions" });
     }
 
     const auctions = await Auction.find({

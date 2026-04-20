@@ -4,12 +4,15 @@ const cloudinary = require("../config/cloudinary");
 const path = require("path");
 const fs = require("fs");
 
-// Check if Cloudinary is configured
+// Check if Cloudinary is configured properly
 const isCloudinaryConfigured = () => {
+  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
   return (
-    process.env.CLOUDINARY_CLOUD_NAME &&
-    process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
+    CLOUDINARY_CLOUD_NAME?.trim() &&
+    CLOUDINARY_API_KEY?.trim() &&
+    CLOUDINARY_API_SECRET?.trim() &&
+    !CLOUDINARY_CLOUD_NAME.trim().includes(' ') &&
+    CLOUDINARY_CLOUD_NAME.trim().length > 3
   );
 };
 

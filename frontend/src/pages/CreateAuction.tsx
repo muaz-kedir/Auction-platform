@@ -31,6 +31,7 @@ export function CreateAuction() {
     title: "",
     description: "",
     category: "",
+    customCategory: "",
     condition: "",
     startingBid: "",
     reservePrice: "",
@@ -42,6 +43,7 @@ export function CreateAuction() {
     shippingMethod: "",
     location: "",
   });
+  const [isOtherCategory, setIsOtherCategory] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -49,11 +51,52 @@ export function CreateAuction() {
 
   const fetchCategories = async () => {
     try {
+      console.log("Fetching categories...");
       const response = await api.categories.getAll();
-      setCategories(response);
+      console.log("Raw response:", JSON.stringify(response, null, 2));
+      
+      // Handle various response formats
+      let categoriesData: Category[] = [];
+      
+      if (Array.isArray(response)) {
+        categoriesData = response;
+        console.log("Response is array, length:", response.length);
+      } else if (response && Array.isArray(response.categories)) {
+        categoriesData = response.categories;
+      } else if (response && typeof response === 'object') {
+        // Try to find any array in the response
+        const possibleArrays = Object.values(response).filter(v => Array.isArray(v));
+        if (possibleArrays.length > 0) {
+          categoriesData = possibleArrays[0] as Category[];
+        }
+      }
+      
+      // Validate categories data
+      if (!Array.isArray(categoriesData) || categoriesData.length === 0) {
+        console.warn("No categories found, using fallback");
+        // Fallback default categories
+        categoriesData = [
+          { _id: "home", name: "Home" },
+          { _id: "vehicle", name: "Vehicle" },
+          { _id: "watch", name: "Watch" },
+          { _id: "art", name: "Art" },
+          { _id: "electronics", name: "Electronics" },
+        ];
+      }
+      
+      console.log("Final categories:", categoriesData);
+      setCategories(categoriesData);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
-      toast.error("Failed to load categories");
+      toast.error("Failed to load categories - using defaults");
+      // Set fallback categories on error
+      setCategories([
+        { _id: "home", name: "Home" },
+        { _id: "vehicle", name: "Vehicle" },
+        { _id: "watch", name: "Watch" },
+        { _id: "art", name: "Art" },
+        { _id: "electronics", name: "Electronics" },
+      ]);
     }
   };
 
@@ -127,10 +170,34 @@ export function CreateAuction() {
       const endTime = new Date(startDate);
       endTime.setDate(endTime.getDate() + parseInt(formData.duration));
 
+      let categoryId = formData.category;
+
+      // If "Other" is selected, create the custom category first
+      if (formData.category === "other" && formData.customCategory.trim()) {
+        try {
+          const newCategory = await api.admin.createCategory(formData.customCategory.trim());
+          categoryId = newCategory.category._id;
+          toast.success(`Category "${formData.customCategory}" created successfully`);
+        } catch (catError: any) {
+          // If category already exists, fetch it and use its ID
+          if (catError.message?.includes("already exists")) {
+            const allCategories = await api.categories.getAll();
+            const existingCat = allCategories.find((c: Category) => 
+              c.name.toLowerCase() === formData.customCategory.trim().toLowerCase()
+            );
+            if (existingCat) {
+              categoryId = existingCat._id;
+            }
+          } else {
+            throw catError;
+          }
+        }
+      }
+
       console.log("Submitting auction with:", {
         title: formData.title,
         description: formData.description,
-        category: formData.category,
+        category: categoryId,
         startingBid: formData.startingBid,
         endTime: endTime.toISOString(),
         imageCount: images.length
@@ -142,8 +209,8 @@ export function CreateAuction() {
       submitData.append("description", formData.description);
       
       // Only add category if selected
-      if (formData.category) {
-        submitData.append("category", formData.category);
+      if (categoryId && categoryId !== "other") {
+        submitData.append("category", categoryId);
       }
       
       submitData.append("startingBid", formData.startingBid);
@@ -163,7 +230,8 @@ export function CreateAuction() {
       navigate("/dashboard/seller");
     } catch (error: any) {
       console.error("Failed to create auction:", error);
-      const errorMessage = error.response?.data?.error || error.message || "Failed to create auction";
+      console.error("Error response:", error.response?.data);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "Failed to create auction";
       
       // If unauthorized, suggest re-login
       if (errorMessage.includes("token") || errorMessage.includes("authorized") || errorMessage.includes("Invalid token")) {
@@ -210,21 +278,57 @@ export function CreateAuction() {
               <Label htmlFor="category">Category *</Label>
               <Select 
                 value={formData.category}
-                onValueChange={(value) => handleInputChange("category", value)}
+                onValueChange={(value) => {
+                  handleInputChange("category", value);
+                  setIsOtherCategory(value === "other");
+                }}
                 required
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder={categories.length === 0 ? "Loading categories..." : "Select a category"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat._id} value={cat._id}>
-                      {cat.name}
+                  {categories.length === 0 ? (
+                    <SelectItem value="loading" disabled>
+                      No categories found. Please refresh.
                     </SelectItem>
-                  ))}
+                  ) : (
+                    <>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other" className="border-t border-border/50 mt-1 pt-1 font-medium text-primary">
+                        + Other (Custom)
+                      </SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
+              {categories.length === 0 && (
+                <p className="text-xs text-destructive">
+                  Categories not loading? <Button variant="link" size="sm" className="h-auto p-0" onClick={fetchCategories}>Click to retry</Button>
+                </p>
+              )}
             </div>
+
+            {/* Custom Category Input - Shows when "Other" is selected */}
+            {isOtherCategory && (
+              <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Label htmlFor="customCategory">Custom Category *</Label>
+                <Input 
+                  id="customCategory" 
+                  placeholder="Enter your custom category name"
+                  value={formData.customCategory}
+                  onChange={(e) => handleInputChange("customCategory", e.target.value)}
+                  required={isOtherCategory}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This category will be reviewed by the admin before your auction is approved.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="condition">Condition</Label>

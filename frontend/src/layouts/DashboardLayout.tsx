@@ -37,7 +37,7 @@ const navigation = [
   { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
   { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller", "buyer"] },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell, roles: ["admin", "super_admin", "seller", "buyer"] },
-  { name: "Seller Panel", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin", "seller"] },
+  { name: "Seller", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin", "seller"] },
   { name: "Admin", href: "/dashboard/admin", icon: Shield, roles: ["admin", "super_admin"] },
   { name: "Settings", href: "/dashboard/settings", icon: Settings, roles: ["admin", "super_admin", "seller", "buyer"] },
 ];

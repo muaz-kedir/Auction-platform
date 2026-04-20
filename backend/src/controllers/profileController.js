@@ -51,7 +51,7 @@ exports.updateProfile = async (req, res) => {
 
     // Handle profile image upload
     if (req.file) {
-      if (req.file.path) {
+      if (req.file.path && req.file.path.startsWith('http')) {
         // Cloudinary URL
         user.profileImage = req.file.path;
       } else if (req.file.filename) {
@@ -94,7 +94,7 @@ exports.uploadProfileImage = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (req.file.path) {
+    if (req.file.path && req.file.path.startsWith('http')) {
       // Cloudinary URL
       user.profileImage = req.file.path;
     } else if (req.file.filename) {
