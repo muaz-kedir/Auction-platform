@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { useAuth } from "../contexts/AuthContext";
+import { SellerDashboard } from "./SellerDashboard";
 
 const activityData = [
   { name: "Mon", value: 12 },
@@ -111,6 +113,14 @@ const notifications = [
 ];
 
 export function Dashboard() {
+  const { user } = useAuth();
+  const isSeller = user?.role === "seller";
+  
+  // For sellers, render the SellerDashboard component
+  if (isSeller) {
+    return <SellerDashboard />;
+  }
+  
   return (
     <div className="space-y-6">
       {/* Page Header */}

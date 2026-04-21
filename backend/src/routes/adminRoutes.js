@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const { protect } = require("../middleware/authMiddleware");
-const { adminOnly, superAdminOnly } = require("../middleware/roleMiddleware");
+const { adminOnly, superAdminOnly, authorize } = require("../middleware/roleMiddleware");
+const walletVerificationController = require("../controllers/walletVerificationController");
 
 // Dashboard Stats
 router.get("/stats", protect, adminOnly, adminController.getDashboardStats);
@@ -38,5 +39,19 @@ router.post("/categories", protect, superAdminOnly, adminController.createCatego
 router.get("/categories", protect, adminOnly, adminController.getAllCategories);
 router.put("/categories/:id", protect, superAdminOnly, adminController.updateCategory);
 router.delete("/categories/:id", protect, superAdminOnly, adminController.deleteCategory);
+
+// Wallet Verification Workflow (Super Admin, Admin, Seller)
+router.get(
+  "/wallet-verifications",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletVerificationController.getAllWalletVerifications
+);
+router.post(
+  "/wallet-verifications/:id/decision",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletVerificationController.submitWalletVerificationDecision
+);
 
 module.exports = router;

@@ -21,6 +21,16 @@ default: 0
 totalEarnings: {
 type: Number,
 default: 0
+},
+
+walletVerified: {
+type: Boolean,
+default: false
+},
+
+maxBiddingAmount: {
+type: Number,
+default: null
 }
 },
 { timestamps: true }

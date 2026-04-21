@@ -6,24 +6,39 @@ import { Card } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Gavel, Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
+import { resolvePostAuthRedirectWithQuery } from "../utils/authRedirect";
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null);
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
   // Check if user was redirected from an auction page
-  const fromAuction = (location.state as any)?.from?.pathname?.includes('/auction');
+  const queryRedirect = new URLSearchParams(location.search).get("redirect");
+  const fromAuction =
+    (location.state as any)?.from?.pathname?.includes('/auction') ||
+    queryRedirect?.includes('/auction');
   const returnUrl = (location.state as any)?.from?.pathname;
+  const authSwitchSearch = queryRedirect
+    ? `?redirect=${encodeURIComponent(queryRedirect)}`
+    : "";
+
+  useEffect(() => {
+    if (isAuthenticated && pendingRedirect) {
+      navigate(pendingRedirect, { replace: true });
+      setPendingRedirect(null);
+    }
+  }, [isAuthenticated, pendingRedirect, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,9 +53,9 @@ export function LoginPage() {
       await login(email, password);
       toast.success("Login successful!");
       
-      // Redirect to the page they were trying to access, or dashboard
-      const from = (location.state as any)?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
+      // Prefer query param, then route state, then stored redirect, then home page
+      const from = resolvePostAuthRedirectWithQuery(queryRedirect, returnUrl, Boolean(fromAuction));
+      setPendingRedirect(from);
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.response?.data?.message || "Invalid credentials");
@@ -188,7 +203,7 @@ export function LoginPage() {
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
             <Link 
-              to="/register" 
+              to={`/register${authSwitchSearch}`} 
               state={{ from: location.state?.from }}
               className="text-primary hover:underline font-medium"
             >

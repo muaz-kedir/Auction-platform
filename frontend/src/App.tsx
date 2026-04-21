@@ -18,6 +18,7 @@ import { AdminPanel } from './pages/AdminPanel';
 import { UserRoleManagement } from './pages/UserRoleManagement';
 import { AnnouncementsManagement } from './pages/AnnouncementsManagement';
 import { AuctionApprovalManagement } from './pages/AuctionApprovalManagement';
+import { WalletVerificationManagement } from './pages/WalletVerificationManagement';
 import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
@@ -61,6 +62,7 @@ function AppContent() {
         { path: "seller", Component: SellerDashboard },
         { path: "seller/auctions", Component: MyAuctions },
         { path: "seller/create", Component: CreateAuction },
+        { path: "wallet-verifications", Component: WalletVerificationManagement },
         {
           path: "admin",
           element: (

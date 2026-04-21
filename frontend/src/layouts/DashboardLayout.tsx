@@ -35,9 +35,10 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller", "buyer"] },
   { name: "Auctions", href: "/dashboard/auctions", icon: Gavel, roles: ["admin", "super_admin", "seller", "buyer"] },
   { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
-  { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller"] },
   { name: "Notifications", href: "/dashboard/notifications", icon: Bell, roles: ["admin", "super_admin", "seller", "buyer"] },
-  { name: "Seller", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin", "seller"] },
+  { name: "Verifications", href: "/dashboard/wallet-verifications", icon: Shield, roles: ["admin", "super_admin", "seller"] },
+  { name: "Seller", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin"] },
   { name: "Admin", href: "/dashboard/admin", icon: Shield, roles: ["admin", "super_admin"] },
   { name: "Settings", href: "/dashboard/settings", icon: Settings, roles: ["admin", "super_admin", "seller", "buyer"] },
 ];

@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../contexts/AuthContext";
 import { toast } from "sonner";
+import { savePostAuthRedirect } from "../../utils/authRedirect";
 
 interface AuctionCardProps {
   id: string;
@@ -28,21 +29,21 @@ export function AuctionCard({
   isLive = false,
 }: AuctionCardProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // Check if user is authenticated
-    if (!user) {
-      // Save the auction URL for redirect after login
+    const auctionPath = `/auction/${id}`;
+
+    if (!isAuthenticated) {
+      savePostAuthRedirect(auctionPath);
       toast.info("Please login or register to view and bid on auctions");
-      navigate("/login", { 
-        state: { from: { pathname: `/auction/${id}` } }
+      navigate(`/login?redirect=${encodeURIComponent(auctionPath)}`, { 
+        state: { from: { pathname: auctionPath } }
       });
     } else {
-      // User is authenticated, navigate to auction
-      navigate(`/auction/${id}`);
+      navigate(auctionPath);
     }
   };
 

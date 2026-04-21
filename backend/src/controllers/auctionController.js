@@ -22,6 +22,11 @@ exports.createAuction = async (req, res) => {
           // Local storage returns filename
           console.log("Local image uploaded:", file.filename);
           return `/uploads/${file.filename}`;
+        } else if (file.path) {
+          // Fallback: extract filename from path and use relative URL
+          const filename = file.path.split(/[\\/]/).pop();
+          console.log("Extracted filename from path:", filename);
+          return `/uploads/${filename}`;
         }
         return null;
       }).filter(Boolean);

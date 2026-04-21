@@ -123,12 +123,24 @@ export const api = {
   // Wallet
   wallet: {
     getBalance: () => apiRequest('/wallet'),
+    getVerificationStatus: () => apiRequest('/wallet/verification/my'),
     
     deposit: (amount: number) =>
       apiRequest('/wallet/deposit', {
         method: 'POST',
         body: JSON.stringify({ amount }),
       }),
+
+    submitVerification: (formData: FormData) => {
+      const token = getAuthToken();
+      return fetch(`${API_BASE_URL}${API_PREFIX}/wallet/verification/submit`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      }).then(handleResponse);
+    },
   },
 
   // Withdrawals
@@ -286,6 +298,18 @@ export const api = {
       }),
     
     getAllAdmins: () => apiRequest('/admin/admins'),
+    getWalletVerifications: (params?: { status?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/wallet-verifications${queryString}`);
+    },
+    submitWalletVerificationDecision: (
+      id: string,
+      data: { decision: "approved" | "rejected"; maxBiddingAmount?: number }
+    ) =>
+      apiRequest(`/admin/wallet-verifications/${id}/decision`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     
     // Category Management (Super Admin only)
     getAllCategories: () => apiRequest('/admin/categories'),

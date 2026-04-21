@@ -1,4 +1,5 @@
 const Wallet = require("../models/Wallet");
+const WalletVerification = require("../models/WalletVerification");
 
 
 // get my wallet
@@ -8,6 +9,14 @@ try {
 let wallet = await Wallet.findOne({ user: req.user._id });
 
 if (!wallet) {
+if (req.user.role === "buyer") {
+  const verification = await WalletVerification.findOne({ user: req.user._id });
+  return res.status(403).json({
+    message: "Please verify your wallet first",
+    verificationStatus: verification?.status || "not_submitted"
+  });
+}
+
 wallet = await Wallet.create({
 user: req.user._id
 });
@@ -30,6 +39,12 @@ const { amount } = req.body;
 let wallet = await Wallet.findOne({ user: req.user._id });
 
 if (!wallet) {
+if (req.user.role === "buyer") {
+  return res.status(403).json({
+    message: "Please verify your wallet first"
+  });
+}
+
 wallet = await Wallet.create({
 user: req.user._id
 });

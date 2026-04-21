@@ -2,6 +2,7 @@ const Bid = require("../models/Bid");
 const Auction = require("../models/Auction");
 const Notification = require("../models/Notification");
 const Wallet = require("../models/Wallet");
+const WalletVerification = require("../models/WalletVerification");
 
 const { getSocket } = require("../utils/socket");
 
@@ -29,7 +30,27 @@ message: "Seller cannot bid"
 // check wallet
 const wallet = await Wallet.findOne({ user: req.user._id });
 
-if (!wallet || wallet.balance < amount) {
+if (!wallet) {
+return res.status(403).json({
+message: "Please verify your wallet first"
+});
+}
+
+if (req.user.role === "buyer" && !wallet.walletVerified) {
+const verification = await WalletVerification.findOne({ user: req.user._id });
+return res.status(403).json({
+message: "Please verify your wallet first",
+verificationStatus: verification?.status || "not_submitted"
+});
+}
+
+if (req.user.role === "buyer" && typeof wallet.maxBiddingAmount === "number" && amount > wallet.maxBiddingAmount) {
+return res.status(400).json({
+message: `Bid exceeds your verified maximum bidding limit of $${wallet.maxBiddingAmount.toLocaleString()}`
+});
+}
+
+if (wallet.balance < amount) {
 return res.status(400).json({
 message: "Insufficient balance"
 });

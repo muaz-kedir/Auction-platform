@@ -42,6 +42,40 @@ interface Auction {
   createdAt: string;
 }
 
+// Helper to fix image URLs - converts file:// and absolute paths to proper URLs
+const getImageUrl = (imagePath: string): string => {
+  if (!imagePath) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100";
+  
+  // If it's already a full URL (http/https), return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // If it's a file:// path, extract just the filename
+  if (imagePath.startsWith('file://')) {
+    const filename = imagePath.split(/[\\/]/).pop();
+    if (filename) {
+      return `http://localhost:5000/uploads/${filename}`;
+    }
+  }
+  
+  // If it's an absolute Windows path, extract just the filename
+  if (imagePath.includes(':\\') || imagePath.includes(':/')) {
+    const filename = imagePath.split(/[\\/]/).pop();
+    if (filename) {
+      return `http://localhost:5000/uploads/${filename}`;
+    }
+  }
+  
+  // If it starts with /uploads/, it's already correct
+  if (imagePath.startsWith('/uploads/')) {
+    return `http://localhost:5000${imagePath}`;
+  }
+  
+  // Default: assume it's a relative path
+  return `http://localhost:5000/uploads/${imagePath}`;
+};
+
 export function SellerDashboard() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "super_admin" || user?.role === "admin";
@@ -338,7 +372,7 @@ export function SellerDashboard() {
                     className="flex items-center gap-4 p-4 rounded-lg border border-border/50 bg-background/50"
                   >
                     <img
-                      src={auction.images[0] || "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100"}
+                      src={getImageUrl(auction.images[0])}
                       alt={auction.title}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
@@ -492,7 +526,7 @@ export function SellerDashboard() {
                   className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-all"
                 >
                   <img 
-                    src={auction.images[0] || "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100"}
+                    src={getImageUrl(auction.images[0])}
                     alt={auction.title}
                     className="w-20 h-20 rounded-lg object-cover"
                   />

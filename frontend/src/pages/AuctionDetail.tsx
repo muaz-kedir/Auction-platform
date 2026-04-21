@@ -4,6 +4,7 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
+import { Label } from "../components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Separator } from "../components/ui/separator";
@@ -22,10 +23,12 @@ import {
   CheckCircle2,
   Gavel,
   Loader2,
-  ArrowLeft
+  ArrowLeft,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Auction {
   _id: string;
@@ -49,32 +52,111 @@ interface Auction {
   createdAt: string;
 }
 
+type WalletStatus = "not_submitted" | "pending" | "approved" | "rejected";
+
 export function AuctionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [auction, setAuction] = useState<Auction | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingAuction, setLoadingAuction] = useState(true);
+  const [loadingWallet, setLoadingWallet] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [bidAmount, setBidAmount] = useState("");
   const [isFavorite, setIsFavorite] = useState(false);
   const [placingBid, setPlacingBid] = useState(false);
+  const [walletStatus, setWalletStatus] = useState<WalletStatus>("not_submitted");
+  const [statementFile, setStatementFile] = useState<File | null>(null);
+  const [submittingVerification, setSubmittingVerification] = useState(false);
+  const { user } = useAuth();
+  const isBuyer = user?.role === "buyer";
 
   useEffect(() => {
-    if (id) {
-      fetchAuction();
-    }
-  }, [id]);
+    let mounted = true;
+    const initializePage = async () => {
+      if (!id) return;
+
+      if (!isBuyer) {
+        if (mounted) setLoadingWallet(false);
+        await fetchAuction();
+        return;
+      }
+
+      await fetchWalletStatus();
+    };
+
+    initializePage();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, isBuyer]);
+
+  useEffect(() => {
+    if (!isBuyer || walletStatus !== "pending") return;
+
+    const interval = setInterval(() => {
+      fetchWalletStatus(false);
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [isBuyer, walletStatus]);
 
   const fetchAuction = async () => {
     try {
-      setLoading(true);
+      setLoadingAuction(true);
       const data = await api.auctions.getById(id!);
       setAuction(data);
     } catch (error: any) {
       console.error("Failed to fetch auction:", error);
       toast.error("Failed to load auction details");
     } finally {
-      setLoading(false);
+      setLoadingAuction(false);
+    }
+  };
+
+  const fetchWalletStatus = async (showLoader = true) => {
+    try {
+      if (showLoader) setLoadingWallet(true);
+      const status = await api.wallet.getVerificationStatus();
+
+      if (status?.verification?.status === "approved" || status?.canBid) {
+        setWalletStatus("approved");
+        await fetchAuction();
+      } else if (status?.verification?.status === "pending" || status?.verification?.status === "ai_checking") {
+        setWalletStatus("pending");
+      } else if (status?.verification?.status === "rejected") {
+        setWalletStatus("rejected");
+      } else {
+        setWalletStatus("not_submitted");
+      }
+    } catch (error: any) {
+      setWalletStatus("not_submitted");
+      if (showLoader) {
+        toast.error(error?.message || "Failed to check wallet verification status");
+      }
+    } finally {
+      if (showLoader) setLoadingWallet(false);
+    }
+  };
+
+  const submitWalletVerification = async () => {
+    if (!statementFile) {
+      toast.error("Please upload a PDF, JPG, or PNG statement");
+      return;
+    }
+
+    try {
+      setSubmittingVerification(true);
+      const formData = new FormData();
+      formData.append("bankStatement", statementFile);
+      await api.wallet.submitVerification(formData);
+      toast.success("Verification submitted. Pending admin approval.");
+      setStatementFile(null);
+      await fetchWalletStatus();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to submit wallet verification");
+    } finally {
+      setSubmittingVerification(false);
     }
   };
 
@@ -121,10 +203,86 @@ export function AuctionDetail() {
     }
   };
 
-  if (loading) {
+  if (loadingWallet || (walletStatus === "approved" && loadingAuction)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (isBuyer && walletStatus !== "approved") {
+    const isPending = walletStatus === "pending";
+    const isRejected = walletStatus === "rejected";
+
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <Card className="w-full max-w-xl p-8 border-border/50 bg-card/60 backdrop-blur-sm">
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">Verify Your Wallet to Continue</h2>
+              <p className="text-muted-foreground">
+                You need an approved wallet verification before viewing this auction and placing bids.
+              </p>
+            </div>
+
+            {walletStatus === "not_submitted" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wallet-file">Upload Bank Statement (PDF, JPG, PNG)</Label>
+                  <Input
+                    id="wallet-file"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setStatementFile(e.target.files?.[0] || null)}
+                    disabled={submittingVerification}
+                  />
+                </div>
+                <Button className="w-full gap-2" onClick={submitWalletVerification} disabled={submittingVerification}>
+                  {submittingVerification ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Submit for Verification
+                </Button>
+              </div>
+            )}
+
+            {isPending && (
+              <div className="rounded-lg border border-border bg-muted/30 p-6 text-center space-y-2">
+                <div className="flex justify-center">
+                  <Badge variant="outline" className="animate-pulse px-3 py-1">
+                    AI Analysis in Progress
+                  </Badge>
+                </div>
+                <p className="font-semibold text-lg">👉 Pending Admin Approval</p>
+                <p className="text-sm text-muted-foreground">
+                  Your bank statement has been submitted and is being analyzed. 
+                  Auction details and bidding will unlock automatically once verified.
+                </p>
+              </div>
+            )}
+
+            {isRejected && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-center">
+                  <p className="font-medium text-destructive">Your document was rejected. Please upload again.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="wallet-file-reupload">Re-upload Bank Statement</Label>
+                  <Input
+                    id="wallet-file-reupload"
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setStatementFile(e.target.files?.[0] || null)}
+                    disabled={submittingVerification}
+                  />
+                </div>
+                <Button className="w-full gap-2" onClick={submitWalletVerification} disabled={submittingVerification}>
+                  {submittingVerification ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  Re-submit Verification
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
     );
   }

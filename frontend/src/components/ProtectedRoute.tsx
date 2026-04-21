@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
+import { savePostAuthRedirect } from '../utils/authRedirect';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -19,7 +20,9 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
   }
 
   if (!isAuthenticated) {
-    // Save the location they were trying to access
+    if (location.pathname.startsWith('/auction/')) {
+      savePostAuthRedirect(location.pathname);
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
