@@ -4,6 +4,7 @@ const adminController = require("../controllers/adminController");
 const { protect } = require("../middleware/authMiddleware");
 const { adminOnly, superAdminOnly, authorize } = require("../middleware/roleMiddleware");
 const walletVerificationController = require("../controllers/walletVerificationController");
+const walletFundingController = require("../controllers/walletFundingController");
 
 // Dashboard Stats
 router.get("/stats", protect, adminOnly, adminController.getDashboardStats);
@@ -52,6 +53,32 @@ router.post(
   protect,
   authorize("super_admin", "admin", "seller"),
   walletVerificationController.submitWalletVerificationDecision
+);
+
+// Wallet Funding Workflow (Super Admin, Admin, Seller)
+router.get(
+  "/wallet-funding-requests",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletFundingController.getAllFundingRequests
+);
+router.get(
+  "/wallet-funding-requests/:userId",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletFundingController.getFundingRequest
+);
+router.post(
+  "/wallet-funding-requests/:userId/decision",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletFundingController.decideFundingRequest
+);
+router.post(
+  "/wallet-funding-requests/:userId/reset",
+  protect,
+  authorize("super_admin", "admin", "seller"),
+  walletFundingController.resetFundingRequest
 );
 
 module.exports = router;

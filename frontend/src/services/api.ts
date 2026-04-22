@@ -141,6 +141,29 @@ export const api = {
         body: formData,
       }).then(handleResponse);
     },
+
+    // Wallet Funding System
+    submitFundingRequest: (data: { fullName: string; phone: string; email: string; location: string; walletAmount: number }) =>
+      apiRequest('/wallet/funding/submit', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+
+    getFundingStatus: () => apiRequest('/wallet/funding/status'),
+
+    canBid: () => apiRequest('/wallet/can-bid'),
+
+    placeBidWithWallet: (auctionId: string, bidAmount: number) =>
+      apiRequest('/wallet/bid', {
+        method: 'POST',
+        body: JSON.stringify({ auctionId, bidAmount }),
+      }),
+
+    refundBid: (amount: number) =>
+      apiRequest('/wallet/refund', {
+        method: 'POST',
+        body: JSON.stringify({ amount }),
+      }),
   },
 
   // Withdrawals
@@ -309,6 +332,29 @@ export const api = {
       apiRequest(`/admin/wallet-verifications/${id}/decision`, {
         method: 'POST',
         body: JSON.stringify(data),
+      }),
+
+    // Wallet Funding Management
+    getAllFundingRequests: (params?: { status?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/admin/wallet-funding-requests${queryString}`);
+    },
+    
+    getFundingRequest: (userId: string) => 
+      apiRequest(`/admin/wallet-funding-requests/${userId}`),
+    
+    decideFundingRequest: (
+      userId: string,
+      data: { decision: "approved" | "rejected" }
+    ) =>
+      apiRequest(`/admin/wallet-funding-requests/${userId}/decision`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    
+    resetFundingRequest: (userId: string) =>
+      apiRequest(`/admin/wallet-funding-requests/${userId}/reset`, {
+        method: 'POST',
       }),
     
     // Category Management (Super Admin only)

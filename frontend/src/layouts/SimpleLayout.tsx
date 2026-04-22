@@ -1,6 +1,6 @@
 import { Outlet } from "react-router";
 import { Link } from "react-router";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Bell, User, Gavel } from "lucide-react";
 import { Button } from "../components/ui/button";

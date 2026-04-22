@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface Approval {
   role: "super_admin" | "admin" | "seller";

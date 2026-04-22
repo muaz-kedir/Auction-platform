@@ -40,7 +40,7 @@ import {
 import { Search, UserPlus, Edit, Trash2, Shield, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface User {
   _id: string;

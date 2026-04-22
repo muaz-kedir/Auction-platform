@@ -277,6 +277,10 @@ export function AdminPanel() {
             <Gavel className="h-4 w-4 mr-2" />
             Auctions
           </Button>
+          <Button onClick={() => window.location.href = "/dashboard/admin/wallet-funding"} variant="outline">
+            <DollarSign className="h-4 w-4 mr-2" />
+            Wallet Funding
+          </Button>
           <Button onClick={() => window.location.href = "/dashboard/admin/announcements"}>
             <Megaphone className="h-4 w-4 mr-2" />
             Announcements

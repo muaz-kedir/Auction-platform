@@ -9,7 +9,7 @@ import { Gavel, Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react"
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 import { resolvePostAuthRedirectWithQuery } from "../utils/authRedirect";
 

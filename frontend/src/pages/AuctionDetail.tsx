@@ -25,10 +25,14 @@ import {
   Loader2,
   ArrowLeft,
   Upload,
+  DollarSign,
+  Wallet,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface Auction {
   _id: string;
@@ -53,6 +57,15 @@ interface Auction {
 }
 
 type WalletStatus = "not_submitted" | "pending" | "approved" | "rejected";
+type FundingStatus = "not_created" | "pending" | "approved" | "rejected";
+
+interface FundingFormData {
+  fullName: string;
+  phone: string;
+  email: string;
+  location: string;
+  walletAmount: string;
+}
 
 export function AuctionDetail() {
   const { id } = useParams();
@@ -65,10 +78,28 @@ export function AuctionDetail() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [placingBid, setPlacingBid] = useState(false);
   const [walletStatus, setWalletStatus] = useState<WalletStatus>("not_submitted");
+  const [fundingStatus, setFundingStatus] = useState<FundingStatus>("not_created");
   const [statementFile, setStatementFile] = useState<File | null>(null);
   const [submittingVerification, setSubmittingVerification] = useState(false);
   const { user } = useAuth();
   const isBuyer = user?.role === "buyer";
+
+  // Wallet funding form state
+  const [fundingForm, setFundingForm] = useState<FundingFormData>({
+    fullName: "",
+    phone: "",
+    email: user?.email || "",
+    location: "",
+    walletAmount: "",
+  });
+  const [submittingFunding, setSubmittingFunding] = useState(false);
+
+  // Wallet balance info
+  const [walletInfo, setWalletInfo] = useState({
+    maxBiddingAmount: 0,
+    remainingBalance: 0,
+    totalUsedAmount: 0,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -92,14 +123,14 @@ export function AuctionDetail() {
   }, [id, isBuyer]);
 
   useEffect(() => {
-    if (!isBuyer || walletStatus !== "pending") return;
+    if (!isBuyer || fundingStatus !== "pending") return;
 
     const interval = setInterval(() => {
-      fetchWalletStatus(false);
+      fetchFundingStatus(false);
     }, 7000);
 
     return () => clearInterval(interval);
-  }, [isBuyer, walletStatus]);
+  }, [isBuyer, fundingStatus]);
 
   const fetchAuction = async () => {
     try {
@@ -121,7 +152,8 @@ export function AuctionDetail() {
 
       if (status?.verification?.status === "approved" || status?.canBid) {
         setWalletStatus("approved");
-        await fetchAuction();
+        // Now check funding status
+        await fetchFundingStatus(showLoader);
       } else if (status?.verification?.status === "pending" || status?.verification?.status === "ai_checking") {
         setWalletStatus("pending");
       } else if (status?.verification?.status === "rejected") {
@@ -136,6 +168,26 @@ export function AuctionDetail() {
       }
     } finally {
       if (showLoader) setLoadingWallet(false);
+    }
+  };
+
+  const fetchFundingStatus = async (showLoader = true) => {
+    try {
+      const status = await api.wallet.getFundingStatus();
+      setFundingStatus(status.fundingStatus);
+      setWalletInfo({
+        maxBiddingAmount: status.maxBiddingAmount || 0,
+        remainingBalance: status.remainingBalance || 0,
+        totalUsedAmount: status.totalUsedAmount || 0,
+      });
+
+      if (status.fundingStatus === "approved" && status.canBid) {
+        await fetchAuction();
+      }
+    } catch (error: any) {
+      if (showLoader) {
+        toast.error(error?.message || "Failed to check funding status");
+      }
     }
   };
 
@@ -157,6 +209,43 @@ export function AuctionDetail() {
       toast.error(error?.message || "Failed to submit wallet verification");
     } finally {
       setSubmittingVerification(false);
+    }
+  };
+
+  const handleFundingFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFundingForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const submitFundingRequest = async () => {
+    const { fullName, phone, email, location, walletAmount } = fundingForm;
+
+    if (!fullName || !phone || !email || !location || !walletAmount) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    const amount = parseFloat(walletAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    try {
+      setSubmittingFunding(true);
+      await api.wallet.submitFundingRequest({
+        fullName,
+        phone,
+        email,
+        location,
+        walletAmount: amount,
+      });
+      toast.success("Funding request submitted. Pending admin approval.");
+      await fetchFundingStatus();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to submit funding request");
+    } finally {
+      setSubmittingFunding(false);
     }
   };
 
@@ -187,13 +276,22 @@ export function AuctionDetail() {
       return;
     }
 
+    // Check if bid exceeds remaining balance
+    if (amount > walletInfo.remainingBalance) {
+      toast.error("Insufficient wallet balance");
+      return;
+    }
+
     try {
       setPlacingBid(true);
-      await api.bids.placeBid(auction._id, amount);
+      // Place bid through wallet system (deducts from balance)
+      await api.wallet.placeBidWithWallet(auction._id, amount);
       toast.success("Bid placed successfully!", {
         description: `Your bid of $${amount.toLocaleString()} has been placed.`,
       });
       setBidAmount("");
+      // Update wallet info
+      await fetchFundingStatus(false);
       fetchAuction();
     } catch (error: any) {
       console.error("Failed to place bid:", error);
@@ -203,7 +301,7 @@ export function AuctionDetail() {
     }
   };
 
-  if (loadingWallet || (walletStatus === "approved" && loadingAuction)) {
+  if (loadingWallet || (walletStatus === "approved" && fundingStatus === "approved" && loadingAuction)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -211,6 +309,7 @@ export function AuctionDetail() {
     );
   }
 
+  // Show wallet verification UI if not verified
   if (isBuyer && walletStatus !== "approved") {
     const isPending = walletStatus === "pending";
     const isRejected = walletStatus === "rejected";
@@ -287,6 +386,217 @@ export function AuctionDetail() {
     );
   }
 
+  // Show wallet funding UI if verified but not funded
+  if (isBuyer && walletStatus === "approved" && fundingStatus !== "approved") {
+    const isPending = fundingStatus === "pending";
+    const isRejected = fundingStatus === "rejected";
+
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <Card className="w-full max-w-2xl p-8 border-border/50 bg-card/60 backdrop-blur-sm">
+          <div className="space-y-6">
+            <div className="text-center space-y-2">
+              <div className="flex justify-center mb-4">
+                <Wallet className="h-12 w-12 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold">Fund Your Wallet to Start Bidding</h2>
+              <p className="text-muted-foreground">
+                Set your maximum bidding amount. This amount will be held in escrow and used to limit your bids.
+              </p>
+            </div>
+
+            {fundingStatus === "not_created" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      placeholder="Enter your full name"
+                      value={fundingForm.fullName}
+                      onChange={handleFundingFormChange}
+                      disabled={submittingFunding}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      placeholder="Enter your phone number"
+                      value={fundingForm.phone}
+                      onChange={handleFundingFormChange}
+                      disabled={submittingFunding}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      value={fundingForm.email}
+                      onChange={handleFundingFormChange}
+                      disabled={submittingFunding}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      placeholder="Enter your location"
+                      value={fundingForm.location}
+                      onChange={handleFundingFormChange}
+                      disabled={submittingFunding}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="walletAmount">Maximum Bidding Amount ($)</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="walletAmount"
+                      name="walletAmount"
+                      type="number"
+                      placeholder="Enter maximum amount you want to use for bidding"
+                      value={fundingForm.walletAmount}
+                      onChange={handleFundingFormChange}
+                      className="pl-9"
+                      disabled={submittingFunding}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    This amount will be held in escrow and will limit your maximum bidding power.
+                  </p>
+                </div>
+                <Button className="w-full gap-2" onClick={submitFundingRequest} disabled={submittingFunding}>
+                  {submittingFunding ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wallet className="h-4 w-4" />
+                  )}
+                  Submit Funding Request
+                </Button>
+              </div>
+            )}
+
+            {isPending && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-muted/30 p-6 text-center space-y-4">
+                  <div className="flex justify-center">
+                    <Badge variant="outline" className="animate-pulse px-3 py-1">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Under Review
+                    </Badge>
+                  </div>
+                  <p className="font-semibold text-lg">👉 Your wallet funding is under review</p>
+                  <p className="text-sm text-muted-foreground">
+                    Admins are reviewing your funding request. Once approved, you'll be able to place bids up to your requested amount.
+                  </p>
+                  <div className="bg-card rounded-lg p-4 border border-border/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Requested Amount:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${parseFloat(fundingForm.walletAmount || "0").toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isRejected && (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-center">
+                  <XCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                  <p className="font-medium text-destructive">Your funding request was rejected.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Please submit a new funding request.</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName-re">Full Name</Label>
+                      <Input
+                        id="fullName-re"
+                        name="fullName"
+                        placeholder="Enter your full name"
+                        value={fundingForm.fullName}
+                        onChange={handleFundingFormChange}
+                        disabled={submittingFunding}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone-re">Phone Number</Label>
+                      <Input
+                        id="phone-re"
+                        name="phone"
+                        placeholder="Enter your phone number"
+                        value={fundingForm.phone}
+                        onChange={handleFundingFormChange}
+                        disabled={submittingFunding}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email-re">Email Address</Label>
+                      <Input
+                        id="email-re"
+                        name="email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={fundingForm.email}
+                        onChange={handleFundingFormChange}
+                        disabled={submittingFunding}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location-re">Location</Label>
+                      <Input
+                        id="location-re"
+                        name="location"
+                        placeholder="Enter your location"
+                        value={fundingForm.location}
+                        onChange={handleFundingFormChange}
+                        disabled={submittingFunding}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="walletAmount-re">Maximum Bidding Amount ($)</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="walletAmount-re"
+                        name="walletAmount"
+                        type="number"
+                        placeholder="Enter maximum amount"
+                        value={fundingForm.walletAmount}
+                        onChange={handleFundingFormChange}
+                        className="pl-9"
+                        disabled={submittingFunding}
+                      />
+                    </div>
+                  </div>
+                  <Button className="w-full gap-2" onClick={submitFundingRequest} disabled={submittingFunding}>
+                    {submittingFunding ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wallet className="h-4 w-4" />
+                    )}
+                    Re-submit Funding Request
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   if (!auction) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -309,10 +619,10 @@ export function AuctionDetail() {
         }
         // If it's a local path, prepend the API URL
         if (img.startsWith('/uploads/')) {
-          return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
+          return `${process.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
         }
         // Otherwise, assume it's just a filename
-        return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${img}`;
+        return `${process.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${img}`;
       })
     : ["https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&h=600&fit=crop"];
   
@@ -507,6 +817,30 @@ export function AuctionDetail() {
               {isActive && (
                 <>
                   <Separator />
+
+                  {/* Wallet Info Display */}
+                  {isBuyer && fundingStatus === "approved" && (
+                    <div className="space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Wallet className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-semibold">Your Wallet</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground text-xs">Max Limit</p>
+                          <p className="font-semibold">${walletInfo.maxBiddingAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground text-xs">Used</p>
+                          <p className="font-semibold text-orange-500">${walletInfo.totalUsedAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground text-xs">Remaining</p>
+                          <p className="font-semibold text-green-500">${walletInfo.remainingBalance.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">

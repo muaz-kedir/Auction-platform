@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { SellerDashboard } from "./SellerDashboard";
 
 const activityData = [

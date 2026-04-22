@@ -3,7 +3,7 @@ import { Card } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { motion } from "motion/react";
 import { useNavigate } from "react-router";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { toast } from "sonner";
 import { savePostAuthRedirect } from "../../utils/authRedirect";
 

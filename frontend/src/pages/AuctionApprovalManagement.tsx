@@ -30,7 +30,7 @@ import {
 import { CheckCircle2, XCircle, Loader2, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface Auction {
   _id: string;

@@ -5,10 +5,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Badge } from "../components/ui/badge";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Loader2, Upload, ShieldAlert, CheckCircle2, Clock3, Wallet as WalletIcon } from "lucide-react";
+import { Loader2, Upload, ShieldAlert, CheckCircle2, Clock3, Wallet as WalletIcon, DollarSign, Users, Eye, CheckCircle2 as CheckCircleIcon, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 interface ApprovalDecision {
   role: "super_admin" | "admin" | "seller";
@@ -35,6 +35,31 @@ interface WalletData {
   maxBiddingAmount?: number | null;
 }
 
+interface Approval {
+  role: "super_admin" | "admin" | "seller";
+  decision: "approved" | "rejected";
+  decidedBy: { name: string; email: string; role: string };
+  decidedAt: string;
+}
+
+interface WalletFundingItem {
+  _id: string;
+  user: { _id: string; name: string; email: string; role: string };
+  fundingRequest: {
+    fullName: string;
+    phone: string;
+    email: string;
+    location: string;
+    walletAmount: number;
+    escrowAmount: number;
+  };
+  fundingStatus: "not_created" | "pending" | "approved" | "rejected";
+  approvals: Approval[];
+  maxBiddingAmount: number | null;
+  remainingBalance: number;
+  totalUsedAmount: number;
+}
+
 export function Wallet() {
   const { user } = useAuth();
   const [verification, setVerification] = useState<WalletVerification | null>(null);
@@ -42,8 +67,14 @@ export function Wallet() {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [fundingItems, setFundingItems] = useState<WalletFundingItem[]>([]);
+  const [fundingLoading, setFundingLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
 
   const isBuyer = user?.role === "buyer";
+  const isAdminOrSeller = user?.role === "admin" || user?.role === "seller" || user?.role === "super_admin";
+
+  const currentRole = user?.role as "super_admin" | "admin" | "seller" | undefined;
 
   const fetchWalletState = async () => {
     try {
@@ -58,9 +89,24 @@ export function Wallet() {
     }
   };
 
+  const fetchFundingRequests = async () => {
+    try {
+      setFundingLoading(true);
+      const data = await api.admin.getAllFundingRequests();
+      setFundingItems(data.fundingRequests || []);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load funding requests");
+    } finally {
+      setFundingLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchWalletState();
-  }, []);
+    if (isAdminOrSeller) {
+      fetchFundingRequests();
+    }
+  }, [isAdminOrSeller]);
 
   const handleSubmit = async () => {
     if (!file) {
@@ -89,12 +135,25 @@ export function Wallet() {
     }
   };
 
+  const handleFundingDecision = async (userId: string, decision: "approved" | "rejected") => {
+    try {
+      setSubmittingId(userId);
+      await api.admin.decideFundingRequest(userId, { decision });
+      toast.success("Decision submitted");
+      await fetchFundingRequests();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit decision");
+    } finally {
+      setSubmittingId(null);
+    }
+  };
+
   const approvedCount = useMemo(
     () => verification?.approvals?.filter((a) => a.decision === "approved").length || 0,
     [verification]
   );
 
-  if (loading) {
+  if (loading || (isAdminOrSeller && fundingLoading)) {
     return (
       <div className="flex justify-center items-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -102,14 +161,190 @@ export function Wallet() {
     );
   }
 
-  if (!isBuyer) {
+  // Admin/Seller view - Wallet Funding Management
+  if (isAdminOrSeller) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Wallet</h1>
-        <Card className="p-6">
-          <p className="text-muted-foreground">
-            Wallet verification workflow is required for buyer accounts. Your current role is `{user?.role}`.
-          </p>
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Wallet Funding Management</h1>
+          <p className="text-muted-foreground">Review and approve wallet funding requests from buyers.</p>
+        </div>
+
+        <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+          {fundingLoading ? (
+            <div className="p-10 flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50">
+                    <th className="text-left p-4 font-semibold">Buyer</th>
+                    <th className="text-left p-4 font-semibold">Request Details</th>
+                    <th className="text-left p-4 font-semibold">Requested Amount</th>
+                    <th className="text-left p-4 font-semibold">Status</th>
+                    <th className="text-left p-4 font-semibold">Approvals</th>
+                    <th className="text-right p-4 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fundingItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center p-8 text-muted-foreground">
+                        No funding requests found
+                      </td>
+                    </tr>
+                  ) : (
+                    fundingItems.map((item) => {
+                      const hasRoleDecision = item.approvals.some((a) => a.role === currentRole);
+                      const isFinal = item.fundingStatus === "approved" || item.fundingStatus === "rejected";
+                      const approvedCount = item.approvals.filter(a => a.decision === "approved").length;
+                      const rejectedCount = item.approvals.filter(a => a.decision === "rejected").length;
+
+                      return (
+                        <tr key={item._id} className="border-b border-border/50">
+                          <td className="p-4">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <p className="font-medium">{item.user?.name}</p>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-muted-foreground">{item.user?.email}</span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="text-xs">{item.user?.role}</Badge>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium">Full Name:</span>
+                                <span>{item.fundingRequest?.fullName}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium">Phone:</span>
+                                <span>{item.fundingRequest?.phone}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium">Email:</span>
+                                <span>{item.fundingRequest?.email}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="font-medium">Location:</span>
+                                <span>{item.fundingRequest?.location}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-primary" />
+                                <span className="text-lg font-bold text-primary">
+                                  ${item.fundingRequest?.walletAmount?.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Escrow: ${item.fundingRequest?.escrowAmount?.toLocaleString()}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="space-y-1">
+                              <Badge 
+                                variant={
+                                  item.fundingStatus === "approved" ? "default" : 
+                                  item.fundingStatus === "rejected" ? "destructive" : 
+                                  "outline"
+                                }
+                              >
+                                {item.fundingStatus}
+                              </Badge>
+                              {item.fundingStatus === "pending" && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{approvedCount} approved, {rejectedCount} rejected</span>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            {item.approvals.length === 0 ? (
+                              <span className="text-muted-foreground italic">No decisions yet</span>
+                            ) : (
+                              <div className="space-y-1">
+                                {item.approvals.map((approval, index) => (
+                                  <div key={index} className="flex items-center gap-2 text-sm">
+                                    <Badge 
+                                      variant={approval.decision === "approved" ? "default" : "destructive"}
+                                      className="text-xs"
+                                    >
+                                      {approval.role}: {approval.decision}
+                                    </Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                      by {approval.decidedBy.name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex justify-end gap-2">
+                              {item.fundingStatus === "rejected" ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1"
+                                  disabled={submittingId === item.user._id}
+                                  onClick={() => handleFundingDecision(item.user._id, "approved")}
+                                >
+                                  {submittingId === item.user._id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircleIcon className="h-3 w-3" />
+                                  )}
+                                  Re-approve
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="gap-1"
+                                    disabled={isFinal || hasRoleDecision || submittingId === item.user._id}
+                                    onClick={() => handleFundingDecision(item.user._id, "approved")}
+                                  >
+                                    {submittingId === item.user._id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <CheckCircleIcon className="h-3 w-3" />
+                                    )}
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="gap-1"
+                                    disabled={isFinal || hasRoleDecision || submittingId === item.user._id}
+                                    onClick={() => handleFundingDecision(item.user._id, "rejected")}
+                                  >
+                                    <XCircle className="h-3 w-3" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Card>
       </div>
     );

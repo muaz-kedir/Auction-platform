@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useAuctions } from '../hooks/useAuctions';
 import { useWallet } from '../hooks/useWallet';
 import { socketService } from '../services/socket';

@@ -57,7 +57,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router";
 
 interface Stats {

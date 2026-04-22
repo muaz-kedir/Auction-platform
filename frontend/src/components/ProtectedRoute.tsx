@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { savePostAuthRedirect } from '../utils/authRedirect';
 
 interface ProtectedRouteProps {

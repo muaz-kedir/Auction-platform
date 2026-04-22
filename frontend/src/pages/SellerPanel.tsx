@@ -36,7 +36,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import { api } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 
 const salesData = [
