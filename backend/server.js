@@ -63,18 +63,18 @@ mongoose.connect(process.env.MONGO_URI)
 const seedAdmins = async () => {
   try {
     // Check if super admin exists
-    const superAdminExists = await User.findOne({ email: "superadmin@gmail.com" });
+    const superAdminExists = await User.findOne({ email: "superadmine@gmail.com" });
     if (!superAdminExists) {
-      const hashedPassword = await bcrypt.hash("superadmin123", 10);
+      const hashedPassword = await bcrypt.hash("superadmine123", 10);
       await User.create({
         name: "Super Admin",
-        email: "superadmin@gmail.com",
+        email: "superadmine@gmail.com",
         password: hashedPassword,
         role: "super_admin",
         verified: true,
         isBanned: false
       });
-      console.log(" Super Admin created: superadmin@gmail.com / superadmin123");
+      console.log(" Super Admin created: superadmine@gmail.com / superadmine123");
     } else {
       console.log(" Super Admin already exists");
     }
