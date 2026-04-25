@@ -36,6 +36,12 @@ const apiRequest = async (
   options: RequestInit = {}
 ): Promise<any> => {
   const token = getAuthToken();
+  
+  // Debug logging
+  console.log('[API Debug] Endpoint:', endpoint);
+  console.log('[API Debug] Token exists:', !!token);
+  console.log('[API Debug] Token (first 20 chars):', token ? token.substring(0, 20) + '...' : 'null');
+  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -44,6 +50,8 @@ const apiRequest = async (
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+
+  console.log('[API Debug] Headers:', JSON.stringify(headers, null, 2));
 
   const response = await fetch(`${API_BASE_URL}${API_PREFIX}${endpoint}`, {
     ...options,
