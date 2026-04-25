@@ -23,6 +23,8 @@ const announcementRoutes = require("./src/routes/announcementRoutes");
 
 
 const cron = require("node-cron");
+const bcrypt = require("bcryptjs");
+const User = require("./src/models/User");
 
 const app = express();
 
@@ -50,13 +52,57 @@ app.use("/api/announcements", announcementRoutes);
 
 // MongoDB
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
+.then(() => {
+  console.log("MongoDB Connected");
+  // Seed admins after connection
+  seedAdmins();
+})
 .catch(err => console.log(err));
 
+// Auto-seed admins on startup
+const seedAdmins = async () => {
+  try {
+    // Check if super admin exists
+    const superAdminExists = await User.findOne({ email: "superadmin@gmail.com" });
+    if (!superAdminExists) {
+      const hashedPassword = await bcrypt.hash("superadmin123", 10);
+      await User.create({
+        name: "Super Admin",
+        email: "superadmin@gmail.com",
+        password: hashedPassword,
+        role: "super_admin",
+        verified: true,
+        isBanned: false
+      });
+      console.log(" Super Admin created: superadmin@gmail.com / superadmin123");
+    } else {
+      console.log(" Super Admin already exists");
+    }
+
+    // Check if admin exists
+    const adminExists = await User.findOne({ email: "admin@gmail.com" });
+    if (!adminExists) {
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      await User.create({
+        name: "Admin",
+        email: "admin@gmail.com",
+        password: hashedPassword,
+        role: "admin",
+        verified: true,
+        isBanned: false
+      });
+      console.log(" Admin created: admin@gmail.com / admin123");
+    } else {
+      console.log(" Admin already exists");
+    }
+  } catch (error) {
+    console.error("Error seeding admins:", error);
+  }
+};
 
 // Cron Job (auto end auction)
 cron.schedule("*/10 * * * * *", () => {
-autoEndAuctions();
+  autoEndAuctions();
 });
 
 
