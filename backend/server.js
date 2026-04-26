@@ -27,16 +27,33 @@ const User = require("./src/models/User");
 
 const app = express();
 
-// CORS configuration for production
+// CORS configuration - allow frontend origins
+const allowedOrigins = [
+  'https://auction-platform-seven-rosy.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://auction-platform-seven-rosy.vercel.app', 'https://your-frontend-url.vercel.app'] 
-    : ['http://localhost:3000', 'http://localhost:5173'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 };
+
 app.use(cors(corsOptions));
+// Handle preflight requests
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 // Serve uploaded files as static
