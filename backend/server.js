@@ -21,14 +21,22 @@ const adminRoutes = require("./src/routes/adminRoutes");
 const profileRoutes = require("./src/routes/profileRoutes");
 const announcementRoutes = require("./src/routes/announcementRoutes");
 
-
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
 const User = require("./src/models/User");
 
 const app = express();
 
-app.use(cors());
+// CORS configuration for production
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://auction-platform-seven-rosy.vercel.app', 'https://your-frontend-url.vercel.app'] 
+    : ['http://localhost:3000', 'http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve uploaded files as static
@@ -50,19 +58,33 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/announcements", announcementRoutes);
 
-// MongoDB
-mongoose.connect(process.env.MONGO_URI)
+// MongoDB Connection with Atlas-optimized options
+const mongooseOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 30000, // 30 seconds
+  socketTimeoutMS: 45000, // 45 seconds
+  connectTimeoutMS: 30000, // 30 seconds
+  maxPoolSize: 10,
+  retryWrites: true,
+  w: 'majority'
+};
+
+mongoose.connect(process.env.MONGO_URI, mongooseOptions)
 .then(() => {
-  console.log("MongoDB Connected");
+  console.log("✅ MongoDB Connected Successfully");
   // Seed admins after connection
   seedAdmins();
 })
-.catch(err => console.log(err));
+.catch(err => {
+  console.error("❌ MongoDB Connection Error:", err.message);
+  console.error("Please check your MONGO_URI environment variable");
+});
 
 // Auto-seed admins on startup
 const seedAdmins = async () => {
   try {
-    // Aggressively ensure super adamin exists with correct credentials
+    // Aggressively ensure super admin exists with correct credentials
     const hashedPassword = await bcrypt.hash("superadmine123", 10);
     await User.findOneAndUpdate(
       { role: "super_admin" },
