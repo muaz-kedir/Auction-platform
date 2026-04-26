@@ -101,20 +101,22 @@ mongoose.connect(process.env.MONGO_URI, mongooseOptions)
 // Auto-seed admins on startup
 const seedAdmins = async () => {
   try {
-    // Aggressively ensure super admin exists with correct credentials
-    const hashedPassword = await bcrypt.hash("superadmine123", 10);
-    await User.findOneAndUpdate(
-      { role: "super_admin" },
-      {
+    // Check if super admin exists by email first
+    const superAdminExists = await User.findOne({ email: "superadmine@gmail.com" });
+    if (!superAdminExists) {
+      const hashedPassword = await bcrypt.hash("superadmine123", 10);
+      await User.create({
         name: "Super Admin",
         email: "superadmine@gmail.com",
         password: hashedPassword,
+        role: "super_admin",
         verified: true,
         isBanned: false
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-    console.log(" Super Admin forced: superadmine@gmail.com / superadmine123");
+      });
+      console.log(" Super Admin created: superadmine@gmail.com / superadmine123");
+    } else {
+      console.log(" Super Admin already exists");
+    }
 
     // Check if admin exists
     const adminExists = await User.findOne({ email: "admin@gmail.com" });
