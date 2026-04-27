@@ -1,4 +1,5 @@
 const Auction = require("../models/Auction");
+const mongoose = require("mongoose");
 const { isCloudinaryConfigured } = require("../middleware/cloudinaryUpload");
 
 exports.createAuction = async (req, res) => {
@@ -98,6 +99,16 @@ exports.createAuction = async (req, res) => {
     const auction = await Auction.create(auctionData);
 
     console.log("✓ Auction created successfully:", auction._id);
+    console.log("📂 Saved to database:", mongoose.connection.name);
+    console.log("📊 Collection:", Auction.collection.collectionName);
+
+    // Verify the auction was actually saved by fetching it back
+    const verifyAuction = await Auction.findById(auction._id);
+    if (verifyAuction) {
+      console.log("✅ Verified: Auction exists in database");
+    } else {
+      console.error("❌ Warning: Auction not found after creation!");
+    }
 
     res.status(201).json(auction);
 

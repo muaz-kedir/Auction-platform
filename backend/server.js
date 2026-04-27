@@ -130,7 +130,10 @@ const mongooseOptions = {
 
 mongoose.connect(process.env.MONGO_URI, mongooseOptions)
 .then(() => {
+  const dbName = mongoose.connection.name;
   console.log("✅ MongoDB Connected Successfully");
+  console.log("📂 Connected to database:", dbName);
+  console.log("🌐 Database host:", mongoose.connection.host);
   // Seed admins after connection
   seedAdmins();
 })
