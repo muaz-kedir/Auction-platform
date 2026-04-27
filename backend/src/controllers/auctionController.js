@@ -29,14 +29,18 @@ exports.createAuction = async (req, res) => {
           console.log("✓ Cloudinary image uploaded:", file.path);
           return file.path;
         } else if (file.filename) {
-          // Local storage returns filename
-          console.log("✓ Local image uploaded:", file.filename);
-          return `/uploads/${file.filename}`;
+          // Local storage returns filename - convert to full URL
+          const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+          const fullUrl = `${baseUrl}/uploads/${file.filename}`;
+          console.log("✓ Local image uploaded, full URL:", fullUrl);
+          return fullUrl;
         } else if (file.path) {
-          // Fallback: extract filename from path and use relative URL
+          // Fallback: extract filename from path and use full URL
           const filename = file.path.split(/[\\/]/).pop();
-          console.log("✓ Extracted filename from path:", filename);
-          return `/uploads/${filename}`;
+          const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+          const fullUrl = `${baseUrl}/uploads/${filename}`;
+          console.log("✓ Extracted filename from path, full URL:", fullUrl);
+          return fullUrl;
         }
         console.log("✗ Could not process file");
         return null;
