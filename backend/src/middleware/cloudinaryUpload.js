@@ -7,13 +7,21 @@ const fs = require("fs");
 // Check if Cloudinary is configured properly
 const isCloudinaryConfigured = () => {
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
-  return (
-    CLOUDINARY_CLOUD_NAME?.trim() &&
-    CLOUDINARY_API_KEY?.trim() &&
-    CLOUDINARY_API_SECRET?.trim() &&
-    !CLOUDINARY_CLOUD_NAME.trim().includes(' ') &&
-    CLOUDINARY_CLOUD_NAME.trim().length > 3
-  );
+  
+  // Check if all credentials exist and are valid
+  const hasCredentials = CLOUDINARY_CLOUD_NAME?.trim() &&
+         CLOUDINARY_API_KEY?.trim() &&
+         CLOUDINARY_API_SECRET?.trim() &&
+         CLOUDINARY_CLOUD_NAME.trim().length > 3;
+  
+  if (hasCredentials) {
+    console.log("✓ Cloudinary credentials found");
+    console.log("  Cloud Name:", CLOUDINARY_CLOUD_NAME.trim());
+    console.log("  API Key:", CLOUDINARY_API_KEY.trim());
+    console.log("  API Secret Length:", CLOUDINARY_API_SECRET.trim().length, "characters");
+  }
+  
+  return hasCredentials;
 };
 
 // Cloudinary storage for auction images
@@ -21,32 +29,45 @@ let auctionStorage;
 let profileStorage;
 
 if (isCloudinaryConfigured()) {
-  console.log("✓ Using Cloudinary for image storage");
+  console.log("✓ Initializing Cloudinary storage...");
   
-  auctionStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: "auction-platform/auctions",
-      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-      transformation: [{ width: 1000, height: 1000, crop: "limit" }],
-    },
-  });
+  try {
+    auctionStorage = new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: "auction-platform/auctions",
+        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+        transformation: [{ width: 1000, height: 1000, crop: "limit" }],
+      },
+    });
 
-  profileStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-      folder: "auction-platform/profiles",
-      allowed_formats: ["jpg", "jpeg", "png", "gif"],
-      transformation: [{ width: 500, height: 500, crop: "limit" }],
-    },
-  });
-} else {
-  console.log("⚠ Cloudinary not configured, using local storage");
+    profileStorage = new CloudinaryStorage({
+      cloudinary: cloudinary,
+      params: {
+        folder: "auction-platform/profiles",
+        allowed_formats: ["jpg", "jpeg", "png", "gif"],
+        transformation: [{ width: 500, height: 500, crop: "limit" }],
+      },
+    });
+    
+    console.log("✓ Cloudinary storage initialized successfully");
+  } catch (error) {
+    console.error("✗ Cloudinary initialization failed:", error.message);
+    console.log("⚠ Falling back to local storage");
+    auctionStorage = null;
+    profileStorage = null;
+  }
+}
+
+// Fallback to local storage if Cloudinary not configured or failed
+if (!auctionStorage || !profileStorage) {
+  console.log("⚠ Using local storage for images");
   
   // Fallback to local storage
   const uploadsDir = path.join(__dirname, "../../uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log("✓ Created uploads directory:", uploadsDir);
   }
 
   const localStorage = multer.diskStorage({
