@@ -13,15 +13,27 @@ const isValidCloudinaryConfig = () => {
 };
 
 if (isValidCloudinaryConfig()) {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET.trim();
+  
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim(),
-    api_key: process.env.CLOUDINARY_API_KEY.trim(),
-    api_secret: process.env.CLOUDINARY_API_SECRET.trim(),
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
   });
-  console.log("✓ Cloudinary configured with cloud_name:", process.env.CLOUDINARY_CLOUD_NAME);
+  
+  console.log("✓ Cloudinary configured successfully");
+  console.log("  Cloud Name:", cloudName);
+  console.log("  API Key:", apiKey);
+  console.log("  API Secret Length:", apiSecret.length, "characters");
+  console.log("  API Secret Preview:", apiSecret.substring(0, 5) + "..." + apiSecret.substring(apiSecret.length - 3));
 } else {
   console.log("⚠ Cloudinary not properly configured. Using local storage.");
-  console.log("   To use Cloudinary, set valid CLOUDINARY_CLOUD_NAME, API_KEY, and API_SECRET");
+  console.log("   Missing or invalid credentials:");
+  console.log("   - CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME ? "✓" : "✗");
+  console.log("   - CLOUDINARY_API_KEY:", process.env.CLOUDINARY_API_KEY ? "✓" : "✗");
+  console.log("   - CLOUDINARY_API_SECRET:", process.env.CLOUDINARY_API_SECRET ? "✓" : "✗");
 }
 
 module.exports = cloudinary;

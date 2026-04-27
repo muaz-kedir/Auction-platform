@@ -13,21 +13,32 @@ exports.createAuction = async (req, res) => {
     let images = [];
     
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => {
+      console.log("Processing uploaded files...");
+      images = req.files.map((file, index) => {
+        console.log(`File ${index + 1}:`, {
+          fieldname: file.fieldname,
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          path: file.path?.substring(0, 50) + "...",
+          filename: file.filename
+        });
+        
         if (file.path && file.path.startsWith('http')) {
           // Cloudinary returns full URL in file.path
-          console.log("Cloudinary image uploaded:", file.path);
+          console.log("✓ Cloudinary image uploaded:", file.path);
           return file.path;
         } else if (file.filename) {
           // Local storage returns filename
-          console.log("Local image uploaded:", file.filename);
+          console.log("✓ Local image uploaded:", file.filename);
           return `/uploads/${file.filename}`;
         } else if (file.path) {
           // Fallback: extract filename from path and use relative URL
           const filename = file.path.split(/[\\/]/).pop();
-          console.log("Extracted filename from path:", filename);
+          console.log("✓ Extracted filename from path:", filename);
           return `/uploads/${filename}`;
         }
+        console.log("✗ Could not process file");
         return null;
       }).filter(Boolean);
     }
@@ -91,6 +102,18 @@ exports.createAuction = async (req, res) => {
     console.error("Error name:", error.name);
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
+    
+    // Check if it's a Cloudinary error
+    if (error.message && error.message.includes('Invalid Signature')) {
+      console.error("❌ CLOUDINARY SIGNATURE ERROR");
+      console.error("This means Cloudinary API credentials are incorrect or missing");
+      console.error("Check environment variables: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET");
+      
+      return res.status(500).json({ 
+        error: "Image upload failed. Please contact administrator.",
+        details: "Cloudinary configuration error"
+      });
+    }
     
     // Send more detailed error in development
     if (process.env.NODE_ENV === 'development') {
