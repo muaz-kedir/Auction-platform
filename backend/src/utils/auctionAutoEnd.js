@@ -1,8 +1,14 @@
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
+const mongoose = require("mongoose");
 
 const autoEndAuctions = async () => {
 try {
+// Check if MongoDB is connected
+if (mongoose.connection.readyState !== 1) {
+  console.log("MongoDB not connected, skipping auto-end auction check");
+  return;
+}
 
 const now = new Date();
 
