@@ -33,22 +33,27 @@ const handleResponse = async (response: Response) => {
 // Generic API request function
 const apiRequest = async (
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  skipAuth: boolean = false
 ): Promise<any> => {
   const token = getAuthToken();
   
   // Debug logging
   console.log('[API Debug] Endpoint:', endpoint);
   console.log('[API Debug] Token exists:', !!token);
-  console.log('[API Debug] Token (first 20 chars):', token ? token.substring(0, 20) + '...' : 'null');
+  console.log('[API Debug] Skip Auth:', skipAuth);
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
   };
 
-  if (token) {
+  // Only add Authorization header if token exists AND skipAuth is false
+  if (token && !skipAuth) {
     headers['Authorization'] = `Bearer ${token}`;
+    console.log('[API Debug] Token added (first 20 chars):', token.substring(0, 20) + '...');
+  } else {
+    console.log('[API Debug] No Authorization header added');
   }
 
   console.log('[API Debug] Headers:', JSON.stringify(headers, null, 2));
@@ -56,6 +61,7 @@ const apiRequest = async (
   const response = await fetch(`${API_BASE_URL}${API_PREFIX}${endpoint}`, {
     ...options,
     headers,
+    credentials: 'include', // Enable credentials for CORS
   });
 
   return handleResponse(response);
@@ -69,13 +75,13 @@ export const api = {
       apiRequest('/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
+      }, true), // Skip auth header for register
     
     login: (data: { email: string; password: string }) =>
       apiRequest('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
-      }),
+      }, true), // Skip auth header for login
   },
 
   // Auctions

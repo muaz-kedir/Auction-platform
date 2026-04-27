@@ -29,30 +29,71 @@ const app = express();
 
 // CORS configuration - allow frontend origins
 const allowedOrigins = [
+  'https://auction-platform-expk.vercel.app',
   'https://auction-platform-seven-rosy.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173'
 ];
 
+// Allow any subdomain of vercel.app that belongs to this project, plus the
+// explicit origins above. This makes preview deployments work too.
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // non-browser tools (curl, server-to-server)
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const { hostname } = new URL(origin);
+    // Allow any *.vercel.app deployment (preview / production aliases)
+    if (hostname.endsWith('.vercel.app')) return true;
+  } catch (_) {
+    return false;
+  }
+  return false;
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    console.log('🔍 Incoming request from origin:', origin);
+    if (isAllowedOrigin(origin)) {
+      console.log('✅ Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  optionsSuccessStatus: 204
 };
 
+// Debug middleware - log all incoming requests
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} - Origin: ${req.headers.origin || 'none'}`);
+  next();
+});
+
+// Apply CORS middleware BEFORE routes
 app.use(cors(corsOptions));
-// Handle preflight requests
+
+// Handle preflight OPTIONS requests explicitly
 app.options('*', cors(corsOptions));
+
+// Safety net: ensure CORS headers are always present, even on error responses
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (isAllowedOrigin(origin) && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(express.json());
 
