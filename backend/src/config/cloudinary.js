@@ -4,12 +4,28 @@ const cloudinary = require("cloudinary").v2;
 const isValidCloudinaryConfig = () => {
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
   
-  // Check all required fields exist
-  return CLOUDINARY_CLOUD_NAME?.trim() && 
+  // Debug: Show what we received
+  console.log("🔍 Checking Cloudinary credentials:");
+  console.log("   CLOUDINARY_CLOUD_NAME exists:", !!CLOUDINARY_CLOUD_NAME);
+  console.log("   CLOUDINARY_API_KEY exists:", !!CLOUDINARY_API_KEY);
+  console.log("   CLOUDINARY_API_SECRET exists:", !!CLOUDINARY_API_SECRET);
+  
+  if (CLOUDINARY_API_SECRET) {
+    console.log("   API_SECRET length (raw):", CLOUDINARY_API_SECRET.length);
+    console.log("   API_SECRET length (trimmed):", CLOUDINARY_API_SECRET.trim().length);
+    console.log("   API_SECRET preview:", CLOUDINARY_API_SECRET.substring(0, 5) + "...");
+  }
+  
+  // Check all required fields exist and are not empty after trimming
+  const isValid = CLOUDINARY_CLOUD_NAME?.trim() && 
          CLOUDINARY_API_KEY?.trim() && 
          CLOUDINARY_API_SECRET?.trim() &&
-         !CLOUDINARY_CLOUD_NAME.trim().includes(' ') &&  // Invalid if has spaces
-         CLOUDINARY_CLOUD_NAME.trim().length > 3;  // Must be at least 3 chars
+         CLOUDINARY_CLOUD_NAME.trim().length > 3 &&
+         CLOUDINARY_API_SECRET.trim().length > 15; // API secrets should be at least 15 chars
+  
+  console.log("   Validation result:", isValid ? "✓ VALID" : "✗ INVALID");
+  
+  return isValid;
 };
 
 if (isValidCloudinaryConfig()) {
