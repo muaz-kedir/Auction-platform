@@ -447,6 +447,15 @@ export const api = {
       }).then(handleResponse);
     },
   },
+
+  // Dashboard endpoints
+  dashboard: {
+    getStats: () => apiRequest('/dashboard/stats'),
+    getActiveBids: (limit?: number) => {
+      const queryString = limit ? `?limit=${limit}` : '';
+      return apiRequest(`/dashboard/active-bids${queryString}`);
+    },
+  },
 };
 
 export default api;

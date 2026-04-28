@@ -10,56 +10,16 @@ import {
   ArrowUpRight,
   Clock,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { Link } from "react-router";
 import { AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { useAuth } from "../hooks/useAuth";
 import { SellerDashboard } from "./SellerDashboard";
-
-const activityData = [
-  { name: "Mon", value: 12 },
-  { name: "Tue", value: 19 },
-  { name: "Wed", value: 15 },
-  { name: "Thu", value: 25 },
-  { name: "Fri", value: 22 },
-  { name: "Sat", value: 30 },
-  { name: "Sun", value: 28 },
-];
-
-const miniChartData = [
-  { value: 20 }, { value: 35 }, { value: 25 }, { value: 40 }, { value: 30 }, { value: 45 }, { value: 38 }
-];
-
-const activeBids = [
-  {
-    id: "1",
-    title: "Luxury Swiss Watch",
-    currentBid: 5420,
-    yourBid: 5200,
-    timeLeft: "2h 34m",
-    status: "outbid",
-    image: "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop",
-  },
-  {
-    id: "2",
-    title: "Vintage Camera",
-    currentBid: 1250,
-    yourBid: 1250,
-    timeLeft: "1d 8h",
-    status: "winning",
-    image: "https://images.unsplash.com/photo-1678958169679-42e6ca5785e3?w=400&h=300&fit=crop",
-  },
-  {
-    id: "3",
-    title: "Diamond Ring 2.5ct",
-    currentBid: 8900,
-    yourBid: 8600,
-    timeLeft: "6h 20m",
-    status: "outbid",
-    image: "https://images.unsplash.com/photo-1774504347388-3d01f7cac097?w=400&h=300&fit=crop",
-  },
-];
+import { useState, useEffect } from "react";
+import { api } from "../services/api";
+import { toast } from "sonner";
 
 const recentActivity = [
   {
@@ -116,10 +76,54 @@ export function Dashboard() {
   const { user } = useAuth();
   const isSeller = user?.role === "seller";
   
+  // State for dashboard data
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    walletBalance: 0,
+    activeBidsCount: 0,
+    itemsWon: 0,
+    successRate: 0,
+    totalParticipatedAuctions: 0,
+    biddingActivity: []
+  });
+  const [activeBids, setActiveBids] = useState<any[]>([]);
+  
+  // Fetch dashboard data
+  useEffect(() => {
+    if (!isSeller) {
+      fetchDashboardData();
+    }
+  }, [isSeller]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch stats and active bids in parallel
+      const [statsData, bidsData] = await Promise.all([
+        api.dashboard.getStats(),
+        api.dashboard.getActiveBids(3)
+      ]);
+      
+      setStats(statsData);
+      setActiveBids(bidsData);
+    } catch (error: any) {
+      console.error("Failed to fetch dashboard data:", error);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // For sellers, render the SellerDashboard component
   if (isSeller) {
     return <SellerDashboard />;
   }
+
+  // Mini chart data for stat cards
+  const miniChartData = [
+    { value: 20 }, { value: 35 }, { value: 25 }, { value: 40 }, { value: 30 }, { value: 45 }, { value: 38 }
+  ];
   
   return (
     <div className="space-y-6">
@@ -130,64 +134,76 @@ export function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Wallet Balance"
-          value="$12,450"
-          change="+12.5%"
-          icon={Wallet}
-          trend="up"
-          chart={
-            <ResponsiveContainer width="100%" height={40}>
-              <AreaChart data={miniChartData}>
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#2563EB" 
-                  fill="#2563EB" 
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          }
-        />
-        <StatCard
-          title="Active Bids"
-          value="12"
-          change="+3 today"
-          icon={Gavel}
-          trend="up"
-          chart={
-            <ResponsiveContainer width="100%" height={40}>
-              <AreaChart data={miniChartData}>
-                <Area 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#10B981" 
-                  fill="#10B981" 
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          }
-        />
-        <StatCard
-          title="Items Won"
-          value="28"
-          change="+5 this week"
-          icon={Trophy}
-          trend="up"
-        />
-        <StatCard
-          title="Success Rate"
-          value="89%"
-          change="+2.1%"
-          icon={TrendingUp}
-          trend="up"
-        />
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            title="Wallet Balance"
+            value={`$${stats.walletBalance.toLocaleString()}`}
+            change={stats.walletBalance > 0 ? "Active" : "No funds"}
+            icon={Wallet}
+            trend={stats.walletBalance > 0 ? "up" : "neutral"}
+            chart={
+              <ResponsiveContainer width="100%" height={40}>
+                <AreaChart data={miniChartData}>
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#2563EB" 
+                    fill="#2563EB" 
+                    fillOpacity={0.2}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            }
+          />
+          <StatCard
+            title="Active Bids"
+            value={stats.activeBidsCount.toString()}
+            change={stats.activeBidsCount > 0 ? `${stats.activeBidsCount} ongoing` : "No active bids"}
+            icon={Gavel}
+            trend={stats.activeBidsCount > 0 ? "up" : "neutral"}
+            chart={
+              <ResponsiveContainer width="100%" height={40}>
+                <AreaChart data={miniChartData}>
+                  <Area 
+                    type="monotone" 
+                    dataKey="value" 
+                    stroke="#10B981" 
+                    fill="#10B981" 
+                    fillOpacity={0.2}
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            }
+          />
+          <StatCard
+            title="Items Won"
+            value={stats.itemsWon.toString()}
+            change={stats.itemsWon > 0 ? `${stats.itemsWon} total` : "No wins yet"}
+            icon={Trophy}
+            trend={stats.itemsWon > 0 ? "up" : "neutral"}
+          />
+          <StatCard
+            title="Success Rate"
+            value={`${stats.successRate}%`}
+            change={stats.totalParticipatedAuctions > 0 ? `${stats.totalParticipatedAuctions} participated` : "No data"}
+            icon={TrendingUp}
+            trend={stats.successRate > 50 ? "up" : stats.successRate > 0 ? "neutral" : "down"}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Active Bids */}
@@ -205,57 +221,71 @@ export function Dashboard() {
               </Link>
             </div>
 
-            <div className="space-y-4">
-              {activeBids.map((bid) => (
-                <Link key={bid.id} to={`/dashboard/auctions/${bid.id}`}>
-                  <div className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
-                    <img 
-                      src={bid.image} 
-                      alt={bid.title}
-                      className="w-20 h-20 rounded-lg object-cover"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium mb-1 group-hover:text-primary transition-colors truncate">
-                        {bid.title}
-                      </h3>
-                      <div className="flex items-center gap-4 text-sm mb-2">
-                        <span className="text-muted-foreground">
-                          Your bid: <span className="text-foreground font-medium">${bid.yourBid.toLocaleString()}</span>
-                        </span>
-                        <span className="text-muted-foreground">
-                          Current: <span className="text-primary font-medium">${bid.currentBid.toLocaleString()}</span>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge 
-                          variant={bid.status === "winning" ? "default" : "destructive"}
-                          className={bid.status === "winning" ? "bg-secondary" : ""}
-                        >
-                          {bid.status === "winning" ? (
-                            <>
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Winning
-                            </>
-                          ) : (
-                            <>
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Outbid
-                            </>
-                          )}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {bid.timeLeft}
-                        </span>
-                      </div>
-                    </div>
-                    <Button variant="outline" size="sm" className="self-center">
-                      Place Bid
-                    </Button>
-                  </div>
+            {loading ? (
+              <div className="flex items-center justify-center h-48">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : activeBids.length === 0 ? (
+              <div className="text-center py-12">
+                <Gavel className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No active bids yet</p>
+                <Link to="/dashboard/auctions">
+                  <Button className="mt-4">Browse Auctions</Button>
                 </Link>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activeBids.map((bid) => (
+                  <Link key={bid._id} to={`/dashboard/auctions/${bid.auction._id}`}>
+                    <div className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
+                      <img 
+                        src={bid.auction.images?.[0] || "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop"} 
+                        alt={bid.auction.title}
+                        className="w-20 h-20 rounded-lg object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium mb-1 group-hover:text-primary transition-colors truncate">
+                          {bid.auction.title}
+                        </h3>
+                        <div className="flex items-center gap-4 text-sm mb-2">
+                          <span className="text-muted-foreground">
+                            Your bid: <span className="text-foreground font-medium">${bid.yourBid.toLocaleString()}</span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Current: <span className="text-primary font-medium">${bid.currentBid.toLocaleString()}</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Badge 
+                            variant={bid.status === "winning" ? "default" : "destructive"}
+                            className={bid.status === "winning" ? "bg-secondary" : ""}
+                          >
+                            {bid.status === "winning" ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Winning
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Outbid
+                              </>
+                            )}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {bid.timeLeft}
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="self-center">
+                        Place Bid
+                      </Button>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </Card>
 
           {/* Activity Chart */}
@@ -264,35 +294,49 @@ export function Dashboard() {
               <h2 className="text-xl font-bold">Bidding Activity</h2>
               <p className="text-sm text-muted-foreground">Your bidding trends this week</p>
             </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={activityData}>
-                <XAxis 
-                  dataKey="name" 
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1a1a24',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Bar 
-                  dataKey="value" 
-                  fill="#2563EB" 
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {loading ? (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={stats.biddingActivity.length > 0 ? stats.biddingActivity : [
+                  { name: "Mon", value: 0 },
+                  { name: "Tue", value: 0 },
+                  { name: "Wed", value: 0 },
+                  { name: "Thu", value: 0 },
+                  { name: "Fri", value: 0 },
+                  { name: "Sat", value: 0 },
+                  { name: "Sun", value: 0 },
+                ]}>
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#9ca3af"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="#9ca3af"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1a1a24',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="value" 
+                    fill="#2563EB" 
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Card>
         </div>
 
