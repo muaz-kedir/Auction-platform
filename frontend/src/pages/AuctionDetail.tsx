@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Separator } from "../components/ui/separator";
 import { CountdownTimer } from "../components/auction/CountdownTimer";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { RecentActivity } from "../components/auction/RecentActivity";
+import { useAuctionSocket } from "../hooks/useSocket";
 import {
   Heart,
   Share2,
@@ -101,10 +103,19 @@ export function AuctionDetail() {
     totalUsedAmount: 0,
   });
 
+  // Real-time bidding state
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+
   useEffect(() => {
     let mounted = true;
     const initializePage = async () => {
       if (!id) return;
+
+      // Wait for auth to be loaded
+      if (user === null && !isBuyer) {
+        // Auth is still loading or user is not logged in
+        return;
+      }
 
       if (!isBuyer) {
         if (mounted) setLoadingWallet(false);
@@ -112,7 +123,10 @@ export function AuctionDetail() {
         return;
       }
 
-      await fetchWalletStatus();
+      // Only fetch wallet status if user is authenticated
+      if (user) {
+        await fetchWalletStatus();
+      }
     };
 
     initializePage();
@@ -120,7 +134,7 @@ export function AuctionDetail() {
     return () => {
       mounted = false;
     };
-  }, [id, isBuyer]);
+  }, [id, isBuyer, user]);
 
   useEffect(() => {
     if (!isBuyer || fundingStatus !== "pending") return;
@@ -131,6 +145,42 @@ export function AuctionDetail() {
 
     return () => clearInterval(interval);
   }, [isBuyer, fundingStatus]);
+
+  // Real-time socket handler for bid updates
+  const handleBidUpdate = useCallback((data: any) => {
+    console.log('📥 Bid update received:', data);
+    
+    if (auction && data.auctionId === auction._id) {
+      // Update current bid
+      setAuction(prev => prev ? { ...prev, currentBid: data.currentBid } : null);
+      
+      // Add to recent activity
+      if (data.activity) {
+        const newActivity = {
+          id: `${data.auctionId}-${Date.now()}`,
+          type: data.activity.type,
+          message: data.activity.message,
+          amount: data.activity.amount,
+          time: data.activity.time,
+          bidderName: data.activity.bidderName,
+          isNew: true
+        };
+        
+        setRecentActivity(prev => {
+          const updated = prev.map(a => ({ ...a, isNew: false }));
+          return [newActivity, ...updated].slice(0, 10);
+        });
+        
+        // Notification for other users
+        if (data.bidder._id !== user?._id) {
+          toast.info(`${data.bidder.name} placed a bid of $${data.currentBid.toLocaleString()}`);
+        }
+      }
+    }
+  }, [auction, user]);
+
+  // Connect to socket for real-time updates
+  useAuctionSocket(auction?._id, handleBidUpdate);
 
   const fetchAuction = async () => {
     try {
@@ -284,6 +334,26 @@ export function AuctionDetail() {
 
     try {
       setPlacingBid(true);
+      
+      // Optimistic update
+      setAuction(prev => prev ? { ...prev, currentBid: amount } : null);
+      
+      // Add to activity optimistically
+      const newActivity = {
+        id: `${auction._id}-${Date.now()}`,
+        type: 'bid' as const,
+        message: `You placed a bid`,
+        amount: amount,
+        time: new Date().toISOString(),
+        bidderName: user?.name || 'You',
+        isNew: true
+      };
+      
+      setRecentActivity(prev => {
+        const updated = prev.map(a => ({ ...a, isNew: false }));
+        return [newActivity, ...updated].slice(0, 10);
+      });
+      
       // Place bid through wallet system (deducts from balance)
       await api.wallet.placeBidWithWallet(auction._id, amount);
       toast.success("Bid placed successfully!", {
@@ -292,10 +362,11 @@ export function AuctionDetail() {
       setBidAmount("");
       // Update wallet info
       await fetchFundingStatus(false);
-      fetchAuction();
     } catch (error: any) {
       console.error("Failed to place bid:", error);
       toast.error(error.message || "Failed to place bid");
+      // Revert optimistic update on error
+      fetchAuction();
     } finally {
       setPlacingBid(false);
     }
@@ -967,64 +1038,7 @@ export function AuctionDetail() {
 
         {/* Right Column - Recent Activity (3 columns) */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-            <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
-            <div className="space-y-4">
-              {/* Bid Activity */}
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Gavel className="h-4 w-4 text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">Bid placed</p>
-                  <p className="text-xs text-muted-foreground mt-1">5 min ago</p>
-                </div>
-                <span className="text-sm font-bold whitespace-nowrap">${auction.currentBid.toLocaleString()}</span>
-              </div>
-
-              <Separator />
-
-              {/* Outbid Activity */}
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-4 w-4 text-red-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">Outbid</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 hour ago</p>
-                </div>
-                <span className="text-sm font-bold whitespace-nowrap">$1,180</span>
-              </div>
-
-              <Separator />
-
-              {/* Won Activity */}
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="h-4 w-4 text-green-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">Won auction</p>
-                  <p className="text-xs text-muted-foreground mt-1">3 hours ago</p>
-                </div>
-                <span className="text-sm font-bold whitespace-nowrap">$2,800</span>
-              </div>
-
-              <Separator />
-
-              {/* Payment Activity */}
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-gray-500/10 flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 text-gray-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">Payment received</p>
-                  <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
-                </div>
-                <span className="text-sm font-bold whitespace-nowrap">$950</span>
-              </div>
-            </div>
-          </Card>
+          <RecentActivity activities={recentActivity} />
         </div>
       </div>
     </div>
