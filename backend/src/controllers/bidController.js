@@ -12,7 +12,7 @@ try {
 const { amount } = req.body;
 const auctionId = req.params.id;
 
-const auction = await Auction.findById(auctionId);
+const auction = await Auction.findById(auctionId).populate('seller', 'name email');
 
 if (!auction) {
 return res.status(404).json({
@@ -21,7 +21,7 @@ message: "Auction not found"
 }
 
 // seller cannot bid
-if (auction.seller.toString() === req.user._id.toString()) {
+if (auction.seller._id.toString() === req.user._id.toString()) {
 return res.status(400).json({
 message: "Seller cannot bid"
 });
@@ -46,7 +46,7 @@ verificationStatus: verification?.status || "not_submitted"
 
 if (req.user.role === "buyer" && typeof wallet.maxBiddingAmount === "number" && amount > wallet.maxBiddingAmount) {
 return res.status(400).json({
-message: `Bid exceeds your verified maximum bidding limit of $${wallet.maxBiddingAmount.toLocaleString()}`
+message: `Bid exceeds your verified maximum bidding limit of ${wallet.maxBiddingAmount.toLocaleString()}`
 });
 }
 
@@ -67,7 +67,7 @@ message: "Bid must be higher"
 // find last bid
 const lastBid = await Bid.findOne({
 auction: auctionId
-}).sort({ createdAt: -1 });
+}).sort({ createdAt: -1 }).populate('bidder', 'name');
 
 
 // deduct money from bidder
@@ -103,25 +103,45 @@ bidder: req.user._id,
 amount
 });
 
+// Populate the bid with bidder info
+await bid.populate('bidder', 'name email');
+
 auction.currentBid = amount;
 await auction.save();
 
 
 // notify seller
 await Notification.create({
-user: auction.seller,
+user: auction.seller._id,
 message: "New bid placed on your auction",
 type: "BID"
 });
 
 
-// realtime
+// realtime - emit detailed bid information
 const io = getSocket();
 if (io) {
-  io.to(auctionId).emit("bidUpdate", {
+  const bidUpdate = {
     auctionId,
-    amount
-  });
+    currentBid: amount,
+    bidder: {
+      _id: req.user._id,
+      name: req.user.name
+    },
+    previousBid: lastBid ? lastBid.amount : auction.startingBid,
+    previousBidder: lastBid ? lastBid.bidder.name : null,
+    timestamp: new Date().toISOString(),
+    activity: {
+      type: 'bid',
+      message: `${req.user.name} placed a bid`,
+      amount: amount,
+      time: new Date().toISOString(),
+      bidderName: req.user.name
+    }
+  };
+  
+  console.log('Emitting bidUpdate:', bidUpdate);
+  io.to(auctionId).emit("bidUpdate", bidUpdate);
 }
 
 res.status(201).json({
