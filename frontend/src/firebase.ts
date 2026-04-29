@@ -2,15 +2,13 @@ import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
 // Firebase configuration
-// You need to replace these values with your Firebase project credentials
-// Get these from Firebase Console > Project Settings > General
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_FIREBASE_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "YOUR_FIREBASE_PROJECT_ID",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_FIREBASE_STORAGE_BUCKET",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_FIREBASE_APP_ID",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAiraoD1N3CjfR2fiMb7zVro7w_GaYdhfM",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "bid-smart-314c5.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "bid-smart-314c5",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "bid-smart-314c5.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "822376997104",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:822376997104:web:6eb1277c5e58b259926235",
 };
 
 // Initialize Firebase

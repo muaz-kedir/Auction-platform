@@ -5,14 +5,13 @@ importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js")
 importScripts("https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js");
 
 // Initialize Firebase in the service worker
-// You'll need to replace these with your Firebase project config
 firebase.initializeApp({
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_FIREBASE_PROJECT_ID",
-  storageBucket: "YOUR_FIREBASE_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_FIREBASE_MESSAGING_SENDER_ID",
-  appId: "YOUR_FIREBASE_APP_ID"
+  apiKey: "AIzaSyAiraoD1N3CjfR2fiMb7zVro7w_GaYdhfM",
+  authDomain: "bid-smart-314c5.firebaseapp.com",
+  projectId: "bid-smart-314c5",
+  storageBucket: "bid-smart-314c5.firebasestorage.app",
+  messagingSenderId: "822376997104",
+  appId: "1:822376997104:web:6eb1277c5e58b259926235"
 });
 
 // Retrieve Firebase Messaging instance
