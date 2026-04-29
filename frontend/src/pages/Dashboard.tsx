@@ -20,6 +20,7 @@ import { SellerDashboard } from "./SellerDashboard";
 import { useState, useEffect } from "react";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
 
 const recentActivity = [
   {
@@ -73,8 +74,28 @@ const notifications = [
 ];
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const navigate = useNavigate();
   const isSeller = user?.role === "seller";
+  const isBuyer = user?.role === "buyer";
+  
+  // Redirect buyers immediately - they don't have a dashboard
+  useEffect(() => {
+    if (!authLoading && isBuyer) {
+      console.log('🔄 Redirecting buyer to auctions...');
+      navigate("/dashboard/auctions", { replace: true });
+    }
+  }, [authLoading, isBuyer, navigate]);
+  
+  // Show loading while auth is loading or while buyer is being redirected
+  if (authLoading || isBuyer) {
+    console.log('⏳ Dashboard loading:', { authLoading, isBuyer });
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   
   // State for dashboard data
   const [loading, setLoading] = useState(true);

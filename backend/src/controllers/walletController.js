@@ -1,5 +1,9 @@
 const Wallet = require("../models/Wallet");
 const WalletVerification = require("../models/WalletVerification");
+const Auction = require("../models/Auction");
+const Bid = require("../models/Bid");
+const Notification = require("../models/Notification");
+const { getSocket } = require("../utils/socket");
 const User = require("../models/User");
 
 // Get my wallet
@@ -219,19 +223,110 @@ exports.placeBidWithWallet = async (req, res) => {
       });
     }
 
+    // Get auction details
+    const auction = await Auction.findById(auctionId).populate('seller', 'name email');
+    
+    if (!auction) {
+      return res.status(404).json({
+        message: "Auction not found"
+      });
+    }
+
+    // Check if bid is higher than current bid
+    if (bidAmount <= auction.currentBid) {
+      return res.status(400).json({
+        message: "Bid must be higher than current bid"
+      });
+    }
+
+    // Find last bid for refund
+    const lastBid = await Bid.findOne({
+      auction: auctionId
+    }).sort({ createdAt: -1 }).populate('bidder', 'name');
+
+    // Refund last bidder if exists
+    if (lastBid) {
+      const lastWallet = await Wallet.findOne({
+        user: lastBid.bidder
+      });
+
+      if (lastWallet) {
+        lastWallet.remainingBalance += lastBid.amount;
+        lastWallet.totalUsedAmount -= lastBid.amount;
+        await lastWallet.save();
+
+        // Notify last bidder
+        await Notification.create({
+          user: lastBid.bidder,
+          message: "You have been outbid and refunded",
+          type: "OUTBID"
+        });
+      }
+    }
+
     // Deduct the bid amount from remaining balance
     wallet.remainingBalance -= bidAmount;
     wallet.totalUsedAmount += bidAmount;
-
     await wallet.save();
+
+    // Create bid record
+    const bid = await Bid.create({
+      auction: auctionId,
+      bidder: req.user._id,
+      amount: bidAmount
+    });
+
+    // Update auction current bid
+    auction.currentBid = bidAmount;
+    await auction.save();
+
+    // Notify seller
+    await Notification.create({
+      user: auction.seller._id,
+      message: "New bid placed on your auction",
+      type: "BID"
+    });
+
+    // 🔥 EMIT SOCKET EVENT FOR REAL-TIME UPDATES
+    const io = getSocket();
+    if (io) {
+      const bidUpdate = {
+        auctionId: auctionId,
+        currentBid: bidAmount,
+        bidder: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        previousBid: lastBid ? lastBid.amount : auction.startingBid,
+        previousBidder: lastBid ? lastBid.bidder.name : null,
+        timestamp: new Date().toISOString(),
+        activity: {
+          type: 'bid',
+          message: `${req.user.name} placed a bid`,
+          amount: bidAmount,
+          time: new Date().toISOString(),
+          bidderName: req.user.name
+        }
+      };
+      
+      console.log('🔥 [WALLET BID] Emitting bidUpdate to room:', auctionId);
+      console.log('🔥 [WALLET BID] Bid update data:', JSON.stringify(bidUpdate, null, 2));
+      console.log('🔥 [WALLET BID] Number of clients in room:', io.sockets.adapter.rooms.get(auctionId)?.size || 0);
+      
+      io.to(auctionId).emit("bidUpdate", bidUpdate);
+      
+      console.log('✅ [WALLET BID] bidUpdate emitted successfully');
+    }
 
     res.json({
       message: "Bid placed successfully",
       remainingBalance: wallet.remainingBalance,
-      totalUsedAmount: wallet.totalUsedAmount
+      totalUsedAmount: wallet.totalUsedAmount,
+      currentBid: bidAmount
     });
 
   } catch (error) {
+    console.error('[WALLET BID ERROR]:', error);
     res.status(500).json({ error: error.message });
   }
 };

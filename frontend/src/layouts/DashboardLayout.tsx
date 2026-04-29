@@ -32,7 +32,7 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller"] },
   { name: "Auctions", href: "/dashboard/auctions", icon: Gavel, roles: ["admin", "super_admin", "seller", "buyer"] },
   { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
   { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller"] },

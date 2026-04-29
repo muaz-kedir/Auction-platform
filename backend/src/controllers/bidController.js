@@ -140,8 +140,14 @@ if (io) {
     }
   };
   
-  console.log('Emitting bidUpdate:', bidUpdate);
+  console.log('🔥 Emitting bidUpdate to room:', auctionId);
+  console.log('🔥 Bid update data:', JSON.stringify(bidUpdate, null, 2));
+  console.log('🔥 Socket.IO instance exists:', !!io);
+  console.log('🔥 Number of clients in room:', io.sockets.adapter.rooms.get(auctionId)?.size || 0);
+  
   io.to(auctionId).emit("bidUpdate", bidUpdate);
+  
+  console.log('✅ bidUpdate emitted successfully');
 }
 
 res.status(201).json({

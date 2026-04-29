@@ -9,6 +9,7 @@ interface Activity {
   amount: number;
   time: string;
   bidderName?: string;
+  isOwn?: boolean;
   isNew?: boolean;
 }
 
@@ -126,7 +127,16 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                   {getActivityIcon(activity.type)}
                 </motion.div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate">{activity.message}</p>
+                  {activity.isOwn ? (
+                    <p className="text-sm font-medium text-primary truncate">
+                      You placed a bid
+                    </p>
+                  ) : (
+                    <p className="text-sm truncate">
+                      <span className="font-medium">{activity.bidderName || 'Someone'}</span>
+                      <span className="text-muted-foreground"> placed a bid</span>
+                    </p>
+                  )}
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-muted-foreground">
                       {formatTime(activity.time)}
@@ -135,7 +145,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                       initial={activity.isNew ? { scale: 0 } : false}
                       animate={activity.isNew ? { scale: [0, 1.3, 1] } : {}}
                       transition={{ duration: 0.4, delay: 0.2 }}
-                      className="text-sm font-medium"
+                      className={`text-sm font-medium ${activity.isOwn ? 'text-primary' : ''}`}
                     >
                       ${activity.amount.toLocaleString()}
                     </motion.p>

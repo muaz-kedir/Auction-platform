@@ -53,9 +53,20 @@ export function LoginPage() {
       await login(email, password);
       toast.success("Login successful!");
       
-      // Prefer query param, then route state, then stored redirect, then home page
-      const from = resolvePostAuthRedirectWithQuery(queryRedirect, returnUrl, Boolean(fromAuction));
-      setPendingRedirect(from);
+      // Get the user role from localStorage (set by login)
+      const storedUser = localStorage.getItem('user');
+      const userRole = storedUser ? JSON.parse(storedUser).role : null;
+      
+      // Redirect buyers directly to auctions, others to dashboard
+      let redirectPath;
+      if (userRole === 'buyer') {
+        redirectPath = '/dashboard/auctions';
+      } else {
+        // Prefer query param, then route state, then stored redirect, then dashboard
+        redirectPath = resolvePostAuthRedirectWithQuery(queryRedirect, returnUrl, Boolean(fromAuction));
+      }
+      
+      setPendingRedirect(redirectPath);
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.response?.data?.message || "Invalid credentials");
