@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -105,6 +105,15 @@ export function AuctionDetail() {
 
   // Real-time bidding state
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  // Use refs to avoid recreating callback
+  const auctionRef = useRef(auction);
+  const userRef = useRef(user);
+  
+  useEffect(() => {
+    auctionRef.current = auction;
+    userRef.current = user;
+  }, [auction, user]);
 
   useEffect(() => {
     let mounted = true;
@@ -162,37 +171,58 @@ export function AuctionDetail() {
   // Real-time socket handler for bid updates
   const handleBidUpdate = useCallback((data: any) => {
     console.log('📥 Bid update received:', data);
+    console.log('📥 Current auction:', auctionRef.current?._id);
+    console.log('📥 Data auctionId:', data.auctionId);
+    console.log('📥 Current user:', userRef.current?._id);
+    console.log('📥 Bidder ID:', data.bidder?._id);
     
-    if (auction && data.auctionId === auction._id) {
+    const currentAuction = auctionRef.current;
+    const currentUser = userRef.current;
+    
+    if (currentAuction && data.auctionId === currentAuction._id) {
+      console.log('✅ Auction ID matches - processing update');
+      
       // Update current bid
       setAuction(prev => prev ? { ...prev, currentBid: data.currentBid } : null);
       
       // Add to recent activity
       if (data.activity) {
+        const isOwnBid = data.bidder._id === currentUser?._id;
+        console.log('🎯 Is own bid:', isOwnBid);
+        
         const newActivity = {
           id: `${data.auctionId}-${Date.now()}`,
           type: data.activity.type,
-          message: data.activity.message,
+          message: isOwnBid ? 'You placed a bid' : `${data.activity.bidderName} placed a bid`,
           amount: data.activity.amount,
           time: data.activity.time,
           bidderName: data.activity.bidderName,
+          isOwn: isOwnBid,
           isNew: true
         };
         
+        console.log('📝 Adding activity:', newActivity);
+        
         setRecentActivity(prev => {
+          console.log('📝 Previous activities:', prev);
           const updated = prev.map(a => ({ ...a, isNew: false }));
-          return [newActivity, ...updated].slice(0, 10);
+          const result = [newActivity, ...updated].slice(0, 10);
+          console.log('📝 New activities:', result);
+          return result;
         });
         
         // Notification for other users
-        if (data.bidder._id !== user?._id) {
+        if (!isOwnBid) {
           toast.info(`${data.bidder.name} placed a bid of $${data.currentBid.toLocaleString()}`);
         }
       }
+    } else {
+      console.log('❌ Auction ID mismatch - ignoring update');
     }
-  }, [auction, user]);
+  }, []); // No dependencies - uses refs instead
 
   // Connect to socket for real-time updates
+  console.log('🔌 Setting up auction socket for auction:', auction?._id);
   useAuctionSocket(auction?._id, handleBidUpdate);
 
   const fetchAuction = async () => {
@@ -359,6 +389,7 @@ export function AuctionDetail() {
         amount: amount,
         time: new Date().toISOString(),
         bidderName: user?.name || 'You',
+        isOwn: true,
         isNew: true
       };
       
