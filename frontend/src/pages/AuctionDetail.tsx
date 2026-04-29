@@ -83,7 +83,7 @@ export function AuctionDetail() {
   const [fundingStatus, setFundingStatus] = useState<FundingStatus>("not_created");
   const [statementFile, setStatementFile] = useState<File | null>(null);
   const [submittingVerification, setSubmittingVerification] = useState(false);
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isBuyer = user?.role === "buyer";
 
   // Wallet funding form state
@@ -109,23 +109,36 @@ export function AuctionDetail() {
   useEffect(() => {
     let mounted = true;
     const initializePage = async () => {
-      if (!id) return;
-
-      // Wait for auth to be loaded
-      if (user === null && !isBuyer) {
-        // Auth is still loading or user is not logged in
+      if (!id) {
+        if (mounted) setLoadingWallet(false);
         return;
       }
 
+      // Wait for auth to finish loading
+      if (authLoading) {
+        return;
+      }
+
+      // Auth is done, now handle based on user type
       if (!isBuyer) {
+        // Not a buyer (seller/admin) - just load auction
         if (mounted) setLoadingWallet(false);
         await fetchAuction();
         return;
       }
 
-      // Only fetch wallet status if user is authenticated
+      // User is a buyer
       if (user) {
-        await fetchWalletStatus();
+        // Logged in buyer - load auction AND check wallet status in parallel
+        // This prevents slow loading when wallet checks take time
+        await Promise.all([
+          fetchAuction(),
+          fetchWalletStatus()
+        ]);
+      } else {
+        // Not logged in - just load auction
+        if (mounted) setLoadingWallet(false);
+        await fetchAuction();
       }
     };
 
@@ -134,7 +147,7 @@ export function AuctionDetail() {
     return () => {
       mounted = false;
     };
-  }, [id, isBuyer, user]);
+  }, [id, isBuyer, user, authLoading]);
 
   useEffect(() => {
     if (!isBuyer || fundingStatus !== "pending") return;
@@ -371,6 +384,15 @@ export function AuctionDetail() {
       setPlacingBid(false);
     }
   };
+
+  // Show loading spinner only when actually loading
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (loadingWallet || (walletStatus === "approved" && fundingStatus === "approved" && loadingAuction)) {
     return (

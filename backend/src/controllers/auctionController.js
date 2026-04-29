@@ -201,23 +201,28 @@ exports.getAuctions = async (req, res) => {
 
     res.json(auctions);
 
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+
+} catch (error) {
+  res.status(500).json({ error: error.message });
+}
 };
 
 exports.getAuctionById = async (req, res) => {
-try {
+  try {
+    const auction = await Auction.findById(req.params.id)
+      .populate("seller", "name email profileImage")
+      .populate("category", "name")
+      .lean(); // Faster query, returns plain JS object
 
-const auction = await Auction.findById(req.params.id)
-.populate("seller")
-.populate("category");
+    if (!auction) {
+      return res.status(404).json({ error: "Auction not found" });
+    }
 
-res.json(auction);
-
-} catch (error) {
-res.status(500).json({ error: error.message });
-}
+    res.json(auction);
+  } catch (error) {
+    console.error("Error fetching auction:", error);
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Approve auction (Super Admin and Admin only)
