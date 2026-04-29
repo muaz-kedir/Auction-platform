@@ -1,4 +1,5 @@
 const Announcement = require("../models/Announcement");
+const { sendNotificationToBuyers } = require("../utils/firebase");
 
 // Get all announcements
 exports.getAllAnnouncements = async (req, res) => {
@@ -53,6 +54,13 @@ exports.createAnnouncement = async (req, res) => {
 
     const populatedAnnouncement = await Announcement.findById(announcement._id)
       .populate("createdBy", "name email");
+
+    // Send push notification to all buyers
+    await sendNotificationToBuyers(
+      title,
+      content,
+      { url: "/announcements" }
+    );
 
     res.status(201).json({
       message: "Announcement created successfully",

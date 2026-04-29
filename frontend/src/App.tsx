@@ -24,8 +24,12 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { usePushNotifications } from './hooks/usePushNotifications';
 
 function AppContent() {
+  // Enable push notifications
+  usePushNotifications();
+
   const router = createBrowserRouter([
     { path: "/", Component: LandingPage },
     { path: "/login", Component: LoginPage },

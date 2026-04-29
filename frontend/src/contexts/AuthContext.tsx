@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '../services/api';
+import { requestNotificationPermission } from '../firebase';
 
 interface User {
   _id: string;
@@ -66,6 +67,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       setToken(newToken);
       setUser(userWithId);
+      
+      // Request notification permission and send FCM token
+      try {
+        const fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          console.log('📱 Sending FCM token to backend');
+          await api.auth.updateFcmToken({ fcmToken });
+        }
+      } catch (error) {
+        console.error('⚠️ Failed to set up push notifications:', error);
+        // Don't block login if notification setup fails
+      }
       
       console.log('Login successful');
     } catch (error: any) {

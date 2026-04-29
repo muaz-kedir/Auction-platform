@@ -82,6 +82,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }, true), // Skip auth header for login
+    
+    updateFcmToken: (data: { fcmToken: string }) =>
+      apiRequest('/auth/fcm-token', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 
   // Auctions

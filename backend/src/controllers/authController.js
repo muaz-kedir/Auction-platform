@@ -94,3 +94,34 @@ user: userResponse
 res.status(500).json({ error: error.message });
 }
 };
+
+// Update FCM Token
+exports.updateFcmToken = async (req, res) => {
+try {
+const { fcmToken } = req.body;
+const userId = req.user?.id;
+
+if (!userId) {
+  return res.status(401).json({ message: "Unauthorized" });
+}
+
+if (!fcmToken) {
+  return res.status(400).json({ message: "FCM token is required" });
+}
+
+const user = await User.findByIdAndUpdate(
+  userId,
+  { fcmToken },
+  { new: true }
+);
+
+if (!user) {
+  return res.status(404).json({ message: "User not found" });
+}
+
+res.json({ message: "FCM token updated successfully" });
+
+} catch (error) {
+res.status(500).json({ error: error.message });
+}
+};

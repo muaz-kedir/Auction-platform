@@ -37,6 +37,11 @@ const userSchema = new mongoose.Schema(
   isBanned: {
     type: Boolean,
     default: false
+  },
+
+  fcmToken: {
+    type: String,
+    default: null
   }
 
 },
