@@ -120,8 +120,6 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // MongoDB Connection with Atlas-optimized options
 const mongooseOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   serverSelectionTimeoutMS: 30000, // 30 seconds
   socketTimeoutMS: 45000, // 45 seconds
   connectTimeoutMS: 30000, // 30 seconds
@@ -138,6 +136,8 @@ mongoose.connect(process.env.MONGO_URI, mongooseOptions)
   console.log("🌐 Database host:", mongoose.connection.host);
   // Seed admins after connection
   seedAdmins();
+  // Start cron job only after MongoDB connects
+  startCronJob();
 })
 .catch(err => {
   console.error("❌ MongoDB Connection Error:", err.message);
@@ -185,11 +185,15 @@ const seedAdmins = async () => {
   }
 };
 
-// Cron Job (auto end auction)
-cron.schedule("*/10 * * * * *", () => {
-  autoEndAuctions();
-});
-
+// Cron Job (auto end auction) - start only after MongoDB connects
+let cronJob = null;
+const startCronJob = () => {
+  if (cronJob) return; // Already started
+  cronJob = cron.schedule("*/10 * * * * *", () => {
+    autoEndAuctions();
+  });
+  console.log("⏰ Auto-end auction cron job started");
+};
 
 // Server
 const PORT = process.env.PORT || 5000;
