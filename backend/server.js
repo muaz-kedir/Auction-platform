@@ -212,20 +212,42 @@ initSocket(io);
 
 io.on("connection", (socket) => {
 
-console.log("User connected:", socket.id);
+console.log("✅ User connected:", socket.id);
 
 // join auction room
 socket.on("joinAuction", (auctionId) => {
+console.log(`🔌 Socket ${socket.id} joining auction room:`, auctionId);
 socket.join(auctionId);
+console.log(`✅ Socket ${socket.id} joined room ${auctionId}`);
+console.log(`📊 Room ${auctionId} now has ${io.sockets.adapter.rooms.get(auctionId)?.size || 0} clients`);
+});
+
+// leave auction room
+socket.on("leaveAuction", (auctionId) => {
+console.log(`🔌 Socket ${socket.id} leaving auction room:`, auctionId);
+socket.leave(auctionId);
+console.log(`✅ Socket ${socket.id} left room ${auctionId}`);
+console.log(`📊 Room ${auctionId} now has ${io.sockets.adapter.rooms.get(auctionId)?.size || 0} clients`);
+});
+
+// get room info
+socket.on("getRoomInfo", (auctionId, callback) => {
+const room = io.sockets.adapter.rooms.get(auctionId);
+callback({
+  auctionId,
+  clientsInRoom: room?.size || 0,
+  socketId: socket.id
+});
 });
 
 // new bid
 socket.on("newBid", (data) => {
+console.log("📨 Received newBid event:", data);
 io.to(data.auctionId).emit("bidUpdate", data);
 });
 
 socket.on("disconnect", () => {
-console.log("User disconnected");
+console.log("❌ User disconnected:", socket.id);
 });
 
 });

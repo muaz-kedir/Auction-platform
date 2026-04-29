@@ -1,38 +1,51 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// Get socket URL from environment or use deployed backend
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
+                   import.meta.env.VITE_API_URL?.replace('/api', '') || 
+                   'https://auction-platform-jl29.onrender.com';
+
+// Singleton socket instance - shared across all components
+let socketInstance: Socket | null = null;
 
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-    });
+    // Reuse existing socket or create new one
+    if (!socketInstance) {
+      console.log('🔌 Creating new socket connection to:', SOCKET_URL);
+      socketInstance = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 10,
+        timeout: 20000,
+      });
 
-    socketRef.current.on('connect', () => {
-      console.log('✅ Socket connected:', socketRef.current?.id);
-    });
+      socketInstance.on('connect', () => {
+        console.log('✅ Socket connected:', socketInstance?.id);
+      });
 
-    socketRef.current.on('disconnect', () => {
-      console.log('❌ Socket disconnected');
-    });
+      socketInstance.on('disconnect', (reason) => {
+        console.log('❌ Socket disconnected:', reason);
+      });
 
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
+      socketInstance.on('connect_error', (error) => {
+        console.error('❌ Socket connection error:', error.message);
+      });
 
-    // Cleanup on unmount
+      socketInstance.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
+      });
+    }
+
+    socketRef.current = socketInstance;
+
+    // Don't disconnect on unmount - keep singleton alive
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+      // Socket stays connected for other components
     };
   }, []);
 
@@ -44,27 +57,61 @@ export function useAuctionSocket(
   onBidUpdate: (data: any) => void
 ) {
   const socket = useSocket();
+  const onBidUpdateRef = useRef(onBidUpdate);
+
+  // Keep callback ref updated
+  useEffect(() => {
+    onBidUpdateRef.current = onBidUpdate;
+  }, [onBidUpdate]);
 
   useEffect(() => {
-    if (!socket || !auctionId) return;
+    if (!socket || !auctionId) {
+      console.log('⚠️ Socket or auctionId missing:', { 
+        hasSocket: !!socket, 
+        socketConnected: socket?.connected,
+        auctionId 
+      });
+      return;
+    }
 
-    console.log('🔌 Joining auction room:', auctionId);
-    
-    // Join the auction room
-    socket.emit('joinAuction', auctionId);
+    // Wait for socket to be connected before joining
+    const joinRoom = () => {
+      console.log('🔌 Joining auction room:', auctionId);
+      console.log('🔌 Socket connected:', socket.connected);
+      console.log('🔌 Socket ID:', socket.id);
+      socket.emit('joinAuction', auctionId);
+      
+      // Confirm room join
+      socket.emit('getRoomInfo', auctionId, (info: any) => {
+        console.log('📊 Room info:', info);
+      });
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    } else {
+      socket.once('connect', joinRoom);
+    }
 
     // Listen for bid updates
-    socket.on('bidUpdate', (data) => {
-      console.log('📥 Received bidUpdate:', data);
-      onBidUpdate(data);
-    });
+    const bidUpdateHandler = (data: any) => {
+      console.log('📥 Received bidUpdate event:', data);
+      console.log('📥 Data auctionId:', data.auctionId);
+      console.log('📥 Current auctionId:', auctionId);
+      console.log('📥 Bidder:', data.bidder?.name);
+      console.log('📥 Amount:', data.currentBid);
+      onBidUpdateRef.current(data);
+    };
+    
+    socket.on('bidUpdate', bidUpdateHandler);
 
     // Cleanup
     return () => {
-      console.log('🔌 Leaving auction room:', auctionId);
-      socket.off('bidUpdate');
+      console.log('🧹 Cleaning up socket listeners for room:', auctionId);
+      socket.off('bidUpdate', bidUpdateHandler);
+      socket.emit('leaveAuction', auctionId);
     };
-  }, [socket, auctionId, onBidUpdate]);
+  }, [socket, auctionId]);
 
   return socket;
 }
