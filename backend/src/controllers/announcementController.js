@@ -39,12 +39,17 @@ exports.getAnnouncement = async (req, res) => {
 // Create announcement
 exports.createAnnouncement = async (req, res) => {
   try {
+    console.log("📝 Creating announcement with data:", req.body);
+    console.log("👤 User ID:", req.user?._id);
+
     const { title, content, visibility } = req.body;
 
     if (!title || !content) {
+      console.log("❌ Missing required fields");
       return res.status(400).json({ message: "Title and content are required" });
     }
 
+    console.log("📢 Creating announcement in database...");
     const announcement = await Announcement.create({
       title,
       content,
@@ -52,9 +57,12 @@ exports.createAnnouncement = async (req, res) => {
       createdBy: req.user._id
     });
 
+    console.log("✅ Announcement created with ID:", announcement._id);
+
     const populatedAnnouncement = await Announcement.findById(announcement._id)
       .populate("createdBy", "name email");
 
+    console.log("📢 Sending push notification to buyers...");
     // Send push notification to all buyers
     await sendNotificationToBuyers(
       title,
@@ -62,11 +70,13 @@ exports.createAnnouncement = async (req, res) => {
       { url: "/announcements" }
     );
 
+    console.log("✅ Announcement creation complete");
     res.status(201).json({
       message: "Announcement created successfully",
       announcement: populatedAnnouncement
     });
   } catch (error) {
+    console.error("❌ Error creating announcement:", error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -109,7 +109,6 @@ app.use("/api/bids", bidRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/escrow", escrowRoutes);
 app.use("/api/withdraw", withdrawRoutes);
-app.use("/uploads", express.static("uploads"));
 app.use("/api/categories", categoryRoutes);
 app.use("/api/ratings", ratingRoutes);
 app.use("/api/disputes", disputeRoutes);
