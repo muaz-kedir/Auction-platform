@@ -16,3 +16,4 @@ dist/
 build/
 coverage/
 .nyc_output/
+firebase-service-account.json
