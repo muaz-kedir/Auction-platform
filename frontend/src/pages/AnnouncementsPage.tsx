@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
-import { Megaphone, ArrowLeft, Calendar, User, Loader2 } from "lucide-react";
+import { Megaphone, ArrowLeft, Calendar, User, Loader2, Gavel } from "lucide-react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
 
@@ -63,9 +63,9 @@ export function AnnouncementsPage() {
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
               <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-                <Megaphone className="h-5 w-5 text-primary-foreground" />
+                <Gavel className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold">Announcements</span>
+              <span className="text-xl font-bold">BidSmart</span>
             </Link>
 
             <div className="flex items-center gap-3">
