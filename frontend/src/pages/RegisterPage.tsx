@@ -64,11 +64,10 @@ export function RegisterPage() {
     setIsLoading(true);
     try {
       await register(name, email, password);
-      toast.success("Account created successfully!");
+      toast.success("Account created successfully! Please login to continue.");
       
-      // Prefer query param, then route state, then stored redirect, then home page
-      const from = resolvePostAuthRedirectWithQuery(queryRedirect, returnUrl, Boolean(fromAuction));
-      setPendingRedirect(from);
+      // Redirect to login page immediately after successful registration
+      navigate(`/login${authSwitchSearch}`, { replace: true });
     } catch (error: any) {
       console.error("Registration error:", error);
       toast.error(error.response?.data?.message || "Registration failed");
