@@ -81,14 +81,32 @@ interface Announcement {
   createdBy: { name: string };
 }
 
+const SEEN_ANNOUNCEMENTS_KEY = "seenAnnouncements";
+
 export function LandingPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [seenIds, setSeenIds] = useState<string[]>([]);
 
+  // Load seen announcement IDs from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(SEEN_ANNOUNCEMENTS_KEY);
+    if (stored) {
+      setSeenIds(JSON.parse(stored));
+    }
+  }, []);
+
+  // Fetch announcements
   useEffect(() => {
     fetchAnnouncements();
   }, []);
+
+  // Update unread count when announcements or seenIds change
+  useEffect(() => {
+    const unread = announcements.filter(a => !seenIds.includes(a._id));
+    setUnreadCount(unread.length);
+  }, [announcements, seenIds]);
 
   const fetchAnnouncements = async () => {
     try {
@@ -100,11 +118,23 @@ export function LandingPage() {
           a.visibility === "homepage" || a.visibility === "both"
         );
         setAnnouncements(activeAnnouncements.slice(0, 5));
-        setUnreadCount(activeAnnouncements.length);
       }
     } catch (error) {
       console.error("Failed to fetch announcements:", error);
     }
+  };
+
+  const handleOpenNotifications = () => {
+    setShowNotifications(true);
+    // Mark all current announcements as seen
+    const currentIds = announcements.map(a => a._id);
+    const newSeenIds = Array.from(new Set([...seenIds, ...currentIds]));
+    setSeenIds(newSeenIds);
+    localStorage.setItem(SEEN_ANNOUNCEMENTS_KEY, JSON.stringify(newSeenIds));
+  };
+
+  const handleCloseNotifications = () => {
+    setShowNotifications(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -146,7 +176,7 @@ export function LandingPage() {
               {/* Notification Bell */}
               <div className="relative">
                 <button
-                  onClick={() => setShowNotifications(!showNotifications)}
+                  onClick={() => showNotifications ? handleCloseNotifications() : handleOpenNotifications()}
                   className="relative p-2 rounded-lg hover:bg-muted transition-colors"
                 >
                   <Bell className="h-5 w-5" />
@@ -162,7 +192,7 @@ export function LandingPage() {
                   <>
                     <div 
                       className="fixed inset-0 z-40" 
-                      onClick={() => setShowNotifications(false)}
+                      onClick={handleCloseNotifications}
                     />
                     <Card className="absolute right-0 top-full mt-2 w-96 z-50 shadow-lg border-border">
                       <div className="p-4 border-b border-border flex items-center justify-between">
@@ -171,7 +201,7 @@ export function LandingPage() {
                           <h3 className="font-semibold">Announcements</h3>
                         </div>
                         <button 
-                          onClick={() => setShowNotifications(false)}
+                          onClick={handleCloseNotifications}
                           className="p-1 rounded hover:bg-muted transition-colors"
                         >
                           <X className="h-4 w-4" />
