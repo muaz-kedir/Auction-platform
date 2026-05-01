@@ -19,6 +19,7 @@ import { UserRoleManagement } from './pages/UserRoleManagement';
 import { AnnouncementsManagement } from './pages/AnnouncementsManagement';
 import { AuctionApprovalManagement } from './pages/AuctionApprovalManagement';
 import { WalletVerificationManagement } from './pages/WalletVerificationManagement';
+import { AnnouncementsPage } from './pages/AnnouncementsPage';
 import { NotFound } from './pages/NotFound';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
@@ -34,6 +35,7 @@ function AppContent() {
     { path: "/", Component: LandingPage },
     { path: "/login", Component: LoginPage },
     { path: "/register", Component: RegisterPage },
+    { path: "/announcements", Component: AnnouncementsPage },
     {
       path: "/auctions",
       element: <SimpleLayout />,

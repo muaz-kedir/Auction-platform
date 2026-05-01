@@ -12,7 +12,10 @@ import {
   Clock,
   Users,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Bell,
+  X,
+  Megaphone
 } from "lucide-react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -69,7 +72,47 @@ const testimonials = [
   },
 ];
 
+interface Announcement {
+  _id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  createdBy: { name: string };
+}
+
 export function LandingPage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_URL}/api/announcements/public`);
+      const data = await response.json();
+      if (data.announcements) {
+        const activeAnnouncements = data.announcements.filter((a: Announcement) => 
+          a.visibility === "homepage" || a.visibility === "both"
+        );
+        setAnnouncements(activeAnnouncements.slice(0, 5));
+        setUnreadCount(activeAnnouncements.length);
+      }
+    } catch (error) {
+      console.error("Failed to fetch announcements:", error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -99,6 +142,94 @@ export function LandingPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Notification Bell */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowNotifications(false)}
+                    />
+                    <Card className="absolute right-0 top-full mt-2 w-96 z-50 shadow-lg border-border">
+                      <div className="p-4 border-b border-border flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Megaphone className="h-4 w-4 text-primary" />
+                          <h3 className="font-semibold">Announcements</h3>
+                        </div>
+                        <button 
+                          onClick={() => setShowNotifications(false)}
+                          className="p-1 rounded hover:bg-muted transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {announcements.length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No announcements yet</p>
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-border">
+                            {announcements.map((announcement) => (
+                              <div 
+                                key={announcement._id} 
+                                className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Megaphone className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-sm line-clamp-1">
+                                      {announcement.title}
+                                    </h4>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                      {announcement.content}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <span className="text-xs text-muted-foreground">
+                                        By {announcement.createdBy?.name || "Admin"}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">•</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatDate(announcement.createdAt)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3 border-t border-border bg-muted/50">
+                        <Link 
+                          to="/announcements" 
+                          className="block text-center text-sm text-primary hover:underline"
+                          onClick={() => setShowNotifications(false)}
+                        >
+                          View all announcements
+                        </Link>
+                      </div>
+                    </Card>
+                  </>
+                )}
+              </div>
+
               <ThemeToggle />
               <Link to="/login">
                 <Button variant="ghost">Login</Button>
