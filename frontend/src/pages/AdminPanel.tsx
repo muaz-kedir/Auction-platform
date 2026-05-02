@@ -101,6 +101,7 @@ export function AdminPanel() {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [searchUsers, setSearchUsers] = useState("");
   const [searchAuctions, setSearchAuctions] = useState("");
   
@@ -126,11 +127,16 @@ export function AdminPanel() {
 
   const fetchStats = async () => {
     try {
+      setStatsLoading(true);
+      console.log("📊 Fetching admin stats...");
       const data = await api.admin.getStats();
+      console.log("✅ Stats received:", data);
       setStats(data);
     } catch (error: any) {
       toast.error("Failed to load stats");
-      console.error(error);
+      console.error("❌ Error fetching stats:", error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -290,7 +296,9 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Users</p>
-              <p className="text-3xl font-bold">{stats?.totalUsers || 0}</p>
+              <p className={`text-3xl font-bold ${statsLoading ? 'animate-pulse text-muted-foreground' : ''}`}>
+                {statsLoading ? '...' : (stats?.totalUsers ?? 0)}
+              </p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
               <Users className="h-6 w-6 text-primary" />
@@ -302,8 +310,12 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Active Auctions</p>
-              <p className="text-3xl font-bold">{stats?.activeAuctions || 0}</p>
-              <p className="text-xs text-muted-foreground mt-1">of {stats?.totalAuctions || 0} total</p>
+              <p className={`text-3xl font-bold ${statsLoading ? 'animate-pulse text-muted-foreground' : ''}`}>
+                {statsLoading ? '...' : (stats?.activeAuctions ?? 0)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {statsLoading ? '' : `of ${stats?.totalAuctions ?? 0} total`}
+              </p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
               <Gavel className="h-6 w-6 text-secondary" />
@@ -315,7 +327,9 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-              <p className="text-3xl font-bold">{formatCurrency(stats?.totalRevenue || 0)}</p>
+              <p className={`text-3xl font-bold ${statsLoading ? 'animate-pulse text-muted-foreground' : ''}`}>
+                {statsLoading ? '...' : formatCurrency(stats?.totalRevenue ?? 0)}
+              </p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <DollarSign className="h-6 w-6 text-purple-500" />
@@ -327,8 +341,12 @@ export function AdminPanel() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Open Disputes</p>
-              <p className="text-3xl font-bold">{stats?.openDisputes || 0}</p>
-              <p className="text-xs text-destructive mt-1">{stats?.pendingWithdrawals || 0} pending withdrawals</p>
+              <p className={`text-3xl font-bold ${statsLoading ? 'animate-pulse text-muted-foreground' : ''}`}>
+                {statsLoading ? '...' : (stats?.openDisputes ?? 0)}
+              </p>
+              <p className="text-xs text-destructive mt-1">
+                {statsLoading ? '' : `${stats?.pendingWithdrawals ?? 0} pending withdrawals`}
+              </p>
             </div>
             <div className="h-12 w-12 rounded-lg bg-destructive/10 flex items-center justify-center">
               <AlertCircle className="h-6 w-6 text-destructive" />

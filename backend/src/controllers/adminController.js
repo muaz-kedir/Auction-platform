@@ -10,30 +10,47 @@ const Category = require("../models/Category");
 // Get Dashboard Stats
 exports.getDashboardStats = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalAuctions = await Auction.countDocuments();
-    const activeAuctions = await Auction.countDocuments({ status: "ACTIVE" });
-    const pendingWithdrawals = await Withdraw.countDocuments({ status: "PENDING" });
-    const openDisputes = await Dispute.countDocuments({ status: "OPEN" });
+    console.log("📊 Admin Dashboard Stats Requested");
     
-    // Calculate total revenue (sum of all wallet transactions)
-    const wallets = await Wallet.find();
+    // Fetch all stats in parallel for better performance
+    const [
+      totalUsers,
+      totalAuctions,
+      activeAuctions,
+      pendingWithdrawals,
+      openDisputes,
+      wallets
+    ] = await Promise.all([
+      User.countDocuments(),
+      Auction.countDocuments({ status: { $ne: "REJECTED" } }),
+      Auction.countDocuments({ status: "ACTIVE" }),
+      Withdraw.countDocuments({ status: "PENDING" }),
+      Dispute.countDocuments({ status: "OPEN" }),
+      Wallet.find().lean()
+    ]);
+    
+    // Calculate total revenue (sum of all wallet DEPOSIT transactions)
     const totalRevenue = wallets.reduce((sum, wallet) => {
       const deposits = wallet.transactions
-        .filter(t => t.type === "DEPOSIT")
-        .reduce((s, t) => s + t.amount, 0);
+        ?.filter(t => t.type === "DEPOSIT")
+        ?.reduce((s, t) => s + (t.amount || 0), 0) || 0;
       return sum + deposits;
     }, 0);
 
-    res.json({
+    const stats = {
       totalUsers,
       totalAuctions,
       activeAuctions,
       totalRevenue,
       pendingWithdrawals,
       openDisputes
-    });
+    };
+
+    console.log("✅ Admin Stats:", stats);
+
+    res.json(stats);
   } catch (error) {
+    console.error("❌ Error fetching dashboard stats:", error);
     res.status(500).json({ error: error.message });
   }
 };
