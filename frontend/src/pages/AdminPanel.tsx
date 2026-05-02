@@ -273,10 +273,6 @@ export function AdminPanel() {
             <Shield className="h-4 w-4 mr-2" />
             Users
           </Button>
-          <Button onClick={() => window.location.href = "/dashboard/admin/auctions"} variant="outline">
-            <Gavel className="h-4 w-4 mr-2" />
-            Auctions
-          </Button>
           <Button onClick={() => window.location.href = "/dashboard/admin/wallet-funding"} variant="outline">
             <DollarSign className="h-4 w-4 mr-2" />
             Wallet Funding
