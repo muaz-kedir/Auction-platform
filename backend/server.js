@@ -21,6 +21,7 @@ const adminRoutes = require("./src/routes/adminRoutes");
 const profileRoutes = require("./src/routes/profileRoutes");
 const announcementRoutes = require("./src/routes/announcementRoutes");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
+const statsRoutes = require("./src/routes/statsRoutes");
 
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
@@ -116,6 +117,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/stats", statsRoutes);
 
 // MongoDB Connection with Atlas-optimized options
 const mongooseOptions = {

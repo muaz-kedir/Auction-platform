@@ -81,6 +81,12 @@ interface Announcement {
   createdBy: { name: string };
 }
 
+interface PublicStats {
+  activeUsers: string;
+  itemsSold: string;
+  successRate: number;
+}
+
 const SEEN_ANNOUNCEMENTS_KEY = "seenAnnouncements";
 
 export function LandingPage() {
@@ -88,6 +94,14 @@ export function LandingPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [seenIds, setSeenIds] = useState<string[]>([]);
+  
+  // Stats state
+  const [stats, setStats] = useState<PublicStats>({
+    activeUsers: "...",
+    itemsSold: "...",
+    successRate: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Load seen announcement IDs from localStorage on mount
   useEffect(() => {
@@ -100,7 +114,31 @@ export function LandingPage() {
   // Fetch announcements
   useEffect(() => {
     fetchAnnouncements();
+    fetchStats();
   }, []);
+
+  // Fetch public stats
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true);
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_URL}/api/stats/public`);
+      const data = await response.json();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+      // Fallback to default values if fetch fails
+      setStats({
+        activeUsers: "50K+",
+        itemsSold: "$2M+",
+        successRate: 99
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   // Update unread count when announcements or seenIds change
   useEffect(() => {
@@ -315,17 +353,23 @@ export function LandingPage() {
 
             <div className="flex items-center justify-center gap-8 pt-8">
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">50K+</p>
+                <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
+                  {stats.activeUsers}
+                </p>
                 <p className="text-sm text-muted-foreground">Active Users</p>
               </div>
               <div className="h-12 w-px bg-border" />
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">$2M+</p>
+                <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
+                  {stats.itemsSold}
+                </p>
                 <p className="text-sm text-muted-foreground">Items Sold</p>
               </div>
               <div className="h-12 w-px bg-border" />
               <div className="text-center">
-                <p className="text-3xl font-bold text-primary">99.9%</p>
+                <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
+                  {stats.successRate}%
+                </p>
                 <p className="text-sm text-muted-foreground">Success Rate</p>
               </div>
             </div>

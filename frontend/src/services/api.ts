@@ -462,6 +462,13 @@ export const api = {
       return apiRequest(`/dashboard/active-bids${queryString}`);
     },
   },
+
+  // Stats endpoints (public and admin)
+  stats: {
+    getPublic: () => apiRequest('/stats/public', {}, true), // Public, no auth needed
+    getOverview: () => apiRequest('/stats/overview'),
+    getAdmin: () => apiRequest('/stats/admin'),
+  },
 };
 
 export default api;
