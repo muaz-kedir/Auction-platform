@@ -405,51 +405,6 @@ export function SellerDashboard() {
         </Card>
       )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/dashboard/seller/auctions">
-          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">My Auctions</h3>
-                <p className="text-sm text-muted-foreground">View and manage listings</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        <Link to="/dashboard/wallet">
-          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-secondary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Wallet</h3>
-                <p className="text-sm text-muted-foreground">View earnings & withdraw</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
-        <Link to="/dashboard/notifications">
-          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/50 transition-all cursor-pointer">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-yellow-500" />
-              </div>
-              <div>
-                <h3 className="font-semibold">Notifications</h3>
-                <p className="text-sm text-muted-foreground">View updates & alerts</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-      </div>
-
       {/* Auction Status Overview */}
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <div className="p-6 border-b border-border/50">
