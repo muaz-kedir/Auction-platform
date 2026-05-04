@@ -129,6 +129,28 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ reason }),
       }),
+
+    // Update auction (Seller can update their own, Admin can update any)
+    update: (id: string, formData: FormData) => {
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("No authentication token found. Please login again.");
+      }
+
+      return fetch(`${API_BASE_URL}${API_PREFIX}/auctions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      }).then(handleResponse);
+    },
+
+    // Delete auction (Seller can delete their own, Admin can delete any)
+    delete: (id: string) =>
+      apiRequest(`/auctions/${id}`, {
+        method: 'DELETE',
+      }),
   },
 
   // Bidding

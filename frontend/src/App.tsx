@@ -14,6 +14,7 @@ import { Settings } from './pages/Settings';
 import { SellerDashboard } from './pages/SellerDashboard';
 import { MyAuctions } from './pages/MyAuctions';
 import { CreateAuction } from './pages/CreateAuction';
+import { EditAuction } from './pages/EditAuction';
 import { AdminPanel } from './pages/AdminPanel';
 import { UserRoleManagement } from './pages/UserRoleManagement';
 import { AnnouncementsManagement } from './pages/AnnouncementsManagement';
@@ -68,6 +69,7 @@ function AppContent() {
         { path: "seller", Component: SellerDashboard },
         { path: "seller/auctions", Component: MyAuctions },
         { path: "seller/create", Component: CreateAuction },
+        { path: "seller/edit/:id", Component: EditAuction },
         { path: "wallet-verifications", Component: WalletVerificationManagement },
         {
           path: "admin",

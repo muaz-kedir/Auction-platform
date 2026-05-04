@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/alert-dialog";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { 
   Search, 
   MoreVertical, 
@@ -67,6 +67,7 @@ export function MyAuctions() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAuctions();
@@ -136,7 +137,7 @@ export function MyAuctions() {
     if (!selectedAuction) return;
 
     try {
-      await api.admin.deleteAuction(selectedAuction);
+      await api.auctions.delete(selectedAuction);
       toast.success("Auction deleted successfully");
       fetchAuctions();
       setDeleteDialogOpen(false);
@@ -305,7 +306,9 @@ export function MyAuctions() {
                             </Link>
                           </DropdownMenuItem>
                           {canEdit(auction) && (
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/dashboard/seller/edit/${auction._id}`)}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>

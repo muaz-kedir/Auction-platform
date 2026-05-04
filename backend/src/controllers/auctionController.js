@@ -331,3 +331,141 @@ exports.getPendingAuctions = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Update auction (Seller can update their own, Admin/Super Admin can update any)
+exports.updateAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    console.log("=== UPDATE AUCTION REQUEST ===");
+    console.log("Auction ID:", id);
+    console.log("User:", userId, "Role:", userRole);
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    // Check permissions
+    const isOwner = auction.seller.toString() === userId.toString();
+    const isAdmin = userRole === "admin" || userRole === "super_admin";
+
+    if (!isOwner && !isAdmin) {
+      console.log("Access denied - Not owner and not admin");
+      return res.status(403).json({ message: "You can only update your own auctions" });
+    }
+
+    // Sellers can only update if auction is still PENDING or not yet started
+    if (isOwner && !isAdmin) {
+      if (auction.status === "ACTIVE" || auction.status === "ENDED") {
+        return res.status(403).json({ message: "Cannot update active or ended auctions" });
+      }
+      // Check if bids have been placed
+      const Bid = require("../models/Bid");
+      const bidCount = await Bid.countDocuments({ auction: id });
+      if (bidCount > 0) {
+        return res.status(403).json({ message: "Cannot update auction that has bids" });
+      }
+    }
+
+    // Build update data
+    const updateData = {};
+    
+    if (req.body.title) updateData.title = req.body.title;
+    if (req.body.description !== undefined) updateData.description = req.body.description;
+    if (req.body.startingBid) updateData.startingBid = Number(req.body.startingBid);
+    if (req.body.endTime) updateData.endTime = req.body.endTime;
+    
+    // Only add category if it's a valid 24-character hex ObjectId
+    if (req.body.category && /^[0-9a-fA-F]{24}$/.test(req.body.category)) {
+      updateData.category = req.body.category;
+    }
+
+    // Handle image updates
+    if (req.files && req.files.length > 0) {
+      let images = req.files.map((file) => {
+        if (file.path && file.path.startsWith('http')) {
+          return file.path;
+        } else if (file.filename) {
+          const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+          return `${baseUrl}/uploads/${file.filename}`;
+        } else if (file.path) {
+          const filename = file.path.split(/[\\/]/).pop();
+          const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+          return `${baseUrl}/uploads/${filename}`;
+        }
+        return null;
+      }).filter(Boolean);
+      
+      updateData.images = images;
+    }
+
+    console.log("Update data:", updateData);
+
+    const updatedAuction = await Auction.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    ).populate("seller", "name email profileImage")
+     .populate("category", "name");
+
+    console.log("✓ Auction updated successfully");
+    res.json(updatedAuction);
+
+  } catch (error) {
+    console.error("=== ERROR UPDATING AUCTION ===");
+    console.error("Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Delete auction (Seller can delete their own, Admin/Super Admin can delete any)
+exports.deleteAuction = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    console.log("=== DELETE AUCTION REQUEST ===");
+    console.log("Auction ID:", id);
+    console.log("User:", userId, "Role:", userRole);
+
+    const auction = await Auction.findById(id);
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    // Check permissions
+    const isOwner = auction.seller.toString() === userId.toString();
+    const isAdmin = userRole === "admin" || userRole === "super_admin";
+
+    if (!isOwner && !isAdmin) {
+      console.log("Access denied - Not owner and not admin");
+      return res.status(403).json({ message: "You can only delete your own auctions" });
+    }
+
+    // Sellers can only delete if auction is not ACTIVE or ENDED
+    if (isOwner && !isAdmin) {
+      if (auction.status === "ACTIVE" || auction.status === "ENDED") {
+        return res.status(403).json({ message: "Cannot delete active or ended auctions" });
+      }
+    }
+
+    // Delete associated bids first
+    const Bid = require("../models/Bid");
+    await Bid.deleteMany({ auction: id });
+    
+    // Delete the auction
+    await Auction.findByIdAndDelete(id);
+
+    console.log("✓ Auction deleted successfully");
+    res.json({ message: "Auction deleted successfully" });
+
+  } catch (error) {
+    console.error("=== ERROR DELETING AUCTION ===");
+    console.error("Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};

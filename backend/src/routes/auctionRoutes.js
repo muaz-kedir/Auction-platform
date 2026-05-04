@@ -7,7 +7,9 @@ const {
   getAuctionById,
   approveAuction,
   rejectAuction,
-  getPendingAuctions
+  getPendingAuctions,
+  updateAuction,
+  deleteAuction
 } = require("../controllers/auctionController");
 
 const { protect: auth } = require("../middleware/authMiddleware");
@@ -43,5 +45,22 @@ router.post(
 router.get("/admin/pending", auth, getPendingAuctions);
 router.put("/:id/approve", auth, approveAuction);
 router.put("/:id/reject", auth, rejectAuction);
+
+// Update and Delete auction (Seller can update/delete their own, Admin/Super Admin can update/delete any)
+router.put("/:id", auth, (req, res, next) => {
+  const upload = auctionUpload.any();
+  upload(req, res, (err) => {
+    if (err) {
+      console.error("Multer error:", err.message);
+      return res.status(400).json({ error: err.message });
+    }
+    if (req.files && req.files.length > 0) {
+      req.files = req.files.filter(f => f.fieldname === "images");
+    }
+    next();
+  });
+}, updateAuction);
+
+router.delete("/:id", auth, deleteAuction);
 
 module.exports = router;
