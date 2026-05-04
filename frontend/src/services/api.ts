@@ -245,9 +245,21 @@ export const api = {
   notifications: {
     getAll: () => apiRequest('/notifications'),
     
+    getStats: () => apiRequest('/notifications/stats'),
+    
     markAsRead: (id: string) =>
       apiRequest(`/notifications/${id}/read`, {
         method: 'PUT',
+      }),
+    
+    markAllAsRead: () =>
+      apiRequest('/notifications/read-all', {
+        method: 'PUT',
+      }),
+    
+    delete: (id: string) =>
+      apiRequest(`/notifications/${id}`, {
+        method: 'DELETE',
       }),
   },
 

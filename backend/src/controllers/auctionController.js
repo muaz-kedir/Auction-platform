@@ -1,6 +1,7 @@
 const Auction = require("../models/Auction");
 const mongoose = require("mongoose");
 const { isCloudinaryConfigured } = require("../middleware/cloudinaryUpload");
+const { createAuctionCreatedNotification } = require("./notificationController");
 
 exports.createAuction = async (req, res) => {
   try {
@@ -108,6 +109,14 @@ exports.createAuction = async (req, res) => {
       console.log("✅ Verified: Auction exists in database");
     } else {
       console.error("❌ Warning: Auction not found after creation!");
+    }
+
+    // Create notification for new auction
+    try {
+      await createAuctionCreatedNotification(verifyAuction || auction, req.user._id);
+    } catch (notifError) {
+      console.error("Error creating auction notification:", notifError.message);
+      // Don't fail the auction creation if notification fails
     }
 
     res.status(201).json(auction);
