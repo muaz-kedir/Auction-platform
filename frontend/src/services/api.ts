@@ -261,6 +261,12 @@ export const api = {
       apiRequest(`/notifications/${id}`, {
         method: 'DELETE',
       }),
+    
+    create: (data: any) =>
+      apiRequest('/notifications/create', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 
   // Disputes
@@ -475,6 +481,7 @@ export const api = {
     },
     getWonAuctions: () => apiRequest('/dashboard/won-auctions'),
     getLostAuctions: () => apiRequest('/dashboard/lost-auctions'),
+    getRecentActivity: () => apiRequest('/dashboard/recent-activity'),
   },
 
   // Stats endpoints (public and admin)

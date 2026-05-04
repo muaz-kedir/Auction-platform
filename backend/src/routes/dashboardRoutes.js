@@ -15,4 +15,7 @@ router.get("/won-auctions", protect, dashboardController.getUserWonAuctions);
 // Get user lost auctions
 router.get("/lost-auctions", protect, dashboardController.getUserLostAuctions);
 
+// Get user recent activity
+router.get("/recent-activity", protect, dashboardController.getRecentActivity);
+
 module.exports = router;

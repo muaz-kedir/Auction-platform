@@ -23,33 +23,6 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { getImageUrl } from "../utils/imageUtils";
 
-const recentActivity = [
-  {
-    type: "bid",
-    title: "You placed a bid on Luxury Swiss Watch",
-    time: "5 minutes ago",
-    amount: "$5,200",
-  },
-  {
-    type: "outbid",
-    title: "You were outbid on Vintage Camera",
-    time: "1 hour ago",
-    amount: "$1,180",
-  },
-  {
-    type: "win",
-    title: "You won the auction for Abstract Art",
-    time: "3 hours ago",
-    amount: "$2,800",
-  },
-  {
-    type: "payment",
-    title: "Payment received for Classic Guitar",
-    time: "1 day ago",
-    amount: "$950",
-  },
-];
-
 const notifications = [
   {
     id: 1,
@@ -109,6 +82,7 @@ export function Dashboard() {
     biddingActivity: []
   });
   const [activeBids, setActiveBids] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   
   // Fetch dashboard data
   useEffect(() => {
@@ -121,14 +95,16 @@ export function Dashboard() {
     try {
       setLoading(true);
       
-      // Fetch stats and active bids in parallel
-      const [statsData, bidsData] = await Promise.all([
+      // Fetch stats, active bids, and recent activity in parallel
+      const [statsData, bidsData, activityData] = await Promise.all([
         api.dashboard.getStats(),
-        api.dashboard.getActiveBids(3)
+        api.dashboard.getActiveBids(3),
+        api.dashboard.getRecentActivity()
       ]);
       
       setStats(statsData);
       setActiveBids(bidsData);
+      setRecentActivity(activityData);
     } catch (error: any) {
       console.error("Failed to fetch dashboard data:", error);
       toast.error("Failed to load dashboard data");

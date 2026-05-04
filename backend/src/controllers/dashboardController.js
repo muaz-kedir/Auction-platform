@@ -252,3 +252,106 @@ exports.getUserLostAuctions = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get Recent Activity for user (bids, outbids, wins, payments)
+exports.getRecentActivity = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get user's recent bids (last 20)
+    const recentBids = await Bid.find({ bidder: userId })
+      .populate('auction', 'title images')
+      .populate('bidder', 'name')
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    // Get auctions where user was outbid (user bid but is not the current highest bidder)
+    const outbidAuctions = await Bid.find({ bidder: userId })
+      .populate({
+        path: 'auction',
+        match: { status: 'ACTIVE' },
+        select: 'title currentBid images'
+      })
+      .sort({ createdAt: -1 });
+
+    // Filter to find where user was outbid
+    const outbidActivities = outbidAuctions
+      .filter(bid => bid.auction && bid.auction.currentBid > bid.amount)
+      .map(bid => ({
+        _id: `outbid-${bid._id}`,
+        type: 'outbid',
+        title: `You were outbid on ${bid.auction.title}`,
+        amount: bid.auction.currentBid,
+        time: bid.createdAt,
+        auctionId: bid.auction._id,
+        auctionTitle: bid.auction.title,
+        auctionImage: bid.auction.images?.[0]
+      }));
+
+    // Get won auctions
+    const wonAuctions = await Auction.find({
+      winner: userId,
+      status: 'ENDED'
+    })
+      .select('title currentBid images endTime')
+      .sort({ endTime: -1 })
+      .limit(10);
+
+    const winActivities = wonAuctions.map(auction => ({
+      _id: `win-${auction._id}`,
+      type: 'win',
+      title: `You won the auction for ${auction.title}`,
+      amount: auction.currentBid,
+      time: auction.endTime,
+      auctionId: auction._id,
+      auctionTitle: auction.title,
+      auctionImage: auction.images?.[0]
+    }));
+
+    // Get recent bids activity
+    const bidActivities = recentBids.map(bid => ({
+      _id: `bid-${bid._id}`,
+      type: 'bid',
+      title: `You placed a bid on ${bid.auction?.title || 'Unknown Item'}`,
+      amount: bid.amount,
+      time: bid.createdAt,
+      auctionId: bid.auction?._id,
+      auctionTitle: bid.auction?.title,
+      auctionImage: bid.auction?.images?.[0]
+    }));
+
+    // Get payment activities from wallet transactions
+    const wallet = await Wallet.findOne({ user: userId });
+    const paymentActivities = wallet?.transactions
+      ?.filter(t => t.type === 'DEPOSIT' || t.type === 'WITHDRAWAL')
+      ?.slice(0, 10)
+      ?.map(t => ({
+        _id: `payment-${t._id}`,
+        type: 'payment',
+        title: t.type === 'DEPOSIT' 
+          ? `Payment received via ${t.method || 'transfer'}`
+          : `Withdrawal to ${t.method || 'account'}`,
+        amount: t.amount,
+        time: t.createdAt || t.date,
+        method: t.method
+      })) || [];
+
+    // Combine all activities
+    const allActivities = [
+      ...bidActivities,
+      ...outbidActivities,
+      ...winActivities,
+      ...paymentActivities
+    ];
+
+    // Sort by time (newest first) and limit to 20
+    allActivities.sort((a, b) => new Date(b.time) - new Date(a.time));
+    const recentActivity = allActivities.slice(0, 20);
+
+    res.json(recentActivity);
+
+  } catch (error) {
+    console.error("Error fetching recent activity:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
