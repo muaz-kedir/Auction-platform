@@ -2,6 +2,12 @@ const cloudinary = require("cloudinary").v2;
 
 // Check if Cloudinary credentials are valid (not empty and no spaces)
 const isValidCloudinaryConfig = () => {
+  // Check if Cloudinary is explicitly disabled
+  if (process.env.DISABLE_CLOUDINARY === 'true') {
+    console.log("⚠ Cloudinary disabled by DISABLE_CLOUDINARY=true");
+    return false;
+  }
+  
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
   
   // Debug: Show what we received

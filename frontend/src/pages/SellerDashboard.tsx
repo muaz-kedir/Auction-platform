@@ -22,6 +22,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recha
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface DashboardStats {
   totalAuctions: number;
@@ -42,39 +43,6 @@ interface Auction {
   createdAt: string;
 }
 
-// Helper to fix image URLs - converts file:// and absolute paths to proper URLs
-const getImageUrl = (imagePath: string): string => {
-  if (!imagePath) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100";
-  
-  // If it's already a full URL (http/https), return as is
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-  
-  // If it's a file:// path, extract just the filename
-  if (imagePath.startsWith('file://')) {
-    const filename = imagePath.split(/[\\/]/).pop();
-    if (filename) {
-      return `http://localhost:5000/uploads/${filename}`;
-    }
-  }
-  
-  // If it's an absolute Windows path, extract just the filename
-  if (imagePath.includes(':\\') || imagePath.includes(':/')) {
-    const filename = imagePath.split(/[\\/]/).pop();
-    if (filename) {
-      return `http://localhost:5000/uploads/${filename}`;
-    }
-  }
-  
-  // If it starts with /uploads/, it's already correct
-  if (imagePath.startsWith('/uploads/')) {
-    return `http://localhost:5000${imagePath}`;
-  }
-  
-  // Default: assume it's a relative path
-  return `http://localhost:5000/uploads/${imagePath}`;
-};
 
 export function SellerDashboard() {
   const { user } = useAuth();

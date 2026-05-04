@@ -17,6 +17,7 @@ import { Card } from "../components/ui/card";
 import { Skeleton } from "../components/ui/skeleton";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface Auction {
   _id: string;
@@ -100,16 +101,6 @@ export function AuctionListing() {
     return `${minutes}m`;
   };
 
-  const processImageUrl = (imageUrl: string) => {
-    if (!imageUrl) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&h=300&fit=crop";
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return imageUrl;
-    }
-    if (imageUrl.startsWith('/uploads/')) {
-      return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imageUrl}`;
-    }
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${imageUrl}`;
-  };
 
   const filteredAuctions = auctions.filter((auction) => {
     const matchesCategory = selectedCategory === "All" || auction.category?.name === selectedCategory;
@@ -273,7 +264,7 @@ export function AuctionListing() {
               key={auction._id} 
               id={auction._id}
               title={auction.title}
-              image={processImageUrl(auction.images[0])}
+              image={getImageUrl(auction.images[0])}
               currentBid={auction.currentBid}
               timeLeft={calculateTimeLeft(auction.endTime)}
               category={auction.category?.name || "Uncategorized"}

@@ -6,6 +6,12 @@ const fs = require("fs");
 
 // Check if Cloudinary is configured properly
 const isCloudinaryConfigured = () => {
+  // Check if Cloudinary is explicitly disabled
+  if (process.env.DISABLE_CLOUDINARY === 'true') {
+    console.log("⚠ Cloudinary disabled by DISABLE_CLOUDINARY=true");
+    return false;
+  }
+  
   const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } = process.env;
   
   // Check if all credentials exist and are valid

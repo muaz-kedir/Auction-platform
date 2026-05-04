@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { Clock, TrendingUp, Trophy, AlertCircle, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface Bid {
   _id: string;
@@ -46,13 +47,6 @@ interface LostAuction {
   winner: { name: string; email: string };
 }
 
-// Helper to get image URL
-const getImageUrl = (imagePath: string): string => {
-  if (!imagePath) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=100";
-  if (imagePath.startsWith('http')) return imagePath;
-  if (imagePath.startsWith('/uploads/')) return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${imagePath}`;
-  return `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${imagePath}`;
-};
 
 export function MyBids() {
   const [activeBids, setActiveBids] = useState<Bid[]>([]);

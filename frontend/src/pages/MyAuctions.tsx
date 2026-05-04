@@ -38,6 +38,7 @@ import {
   Plus
 } from "lucide-react";
 import { api } from "../services/api";
+import { getImageUrl } from "../utils/imageUtils";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 
@@ -276,7 +277,7 @@ export function MyAuctions() {
             <Card key={auction._id} className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
               <div className="flex gap-4">
                 <img
-                  src={auction.images[0] || "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=150"}
+                  src={getImageUrl(auction.images[0])}
                   alt={auction.title}
                   className="w-32 h-32 rounded-lg object-cover"
                 />

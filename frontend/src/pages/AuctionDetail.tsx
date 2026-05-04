@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface Auction {
   _id: string;
@@ -734,20 +735,9 @@ export function AuctionDetail() {
   const endTime = new Date(auction.endTime);
   const minBid = auction.currentBid + 10;
   
-  // Process images - handle both Cloudinary URLs and local paths
+  // Process images using standardized utility
   const processedImages = auction.images && auction.images.length > 0 
-    ? auction.images.map(img => {
-        // If it's already a full URL (Cloudinary), use it as is
-        if (img.startsWith('http://') || img.startsWith('https://')) {
-          return img;
-        }
-        // If it's a local path, prepend the API URL
-        if (img.startsWith('/uploads/')) {
-          return `${process.env.VITE_API_URL || 'http://localhost:5000'}${img}`;
-        }
-        // Otherwise, assume it's just a filename
-        return `${process.env.VITE_API_URL || 'http://localhost:5000'}/uploads/${img}`;
-      })
+    ? auction.images.map(img => getImageUrl(img))
     : ["https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&h=600&fit=crop"];
   
   const isActive = auction.status === "ACTIVE";

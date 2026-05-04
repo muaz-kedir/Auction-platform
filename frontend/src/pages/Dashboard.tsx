@@ -21,6 +21,7 @@ import { useState, useEffect } from "react";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import { getImageUrl } from "../utils/imageUtils";
 
 const recentActivity = [
   {
@@ -260,7 +261,7 @@ export function Dashboard() {
                   <Link key={bid._id} to={`/dashboard/auctions/${bid.auction._id}`}>
                     <div className="flex gap-4 p-4 rounded-lg border border-border/50 hover:border-primary/50 transition-all cursor-pointer group">
                       <img 
-                        src={bid.auction.images?.[0] || "https://images.unsplash.com/photo-1605101232508-283d0cd4909e?w=400&h=300&fit=crop"} 
+                        src={getImageUrl(bid.auction.images?.[0])} 
                         alt={bid.auction.title}
                         className="w-20 h-20 rounded-lg object-cover"
                       />

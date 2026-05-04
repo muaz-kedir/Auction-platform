@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AuctionCard } from "./auction/AuctionCard";
 import { Loader2 } from "lucide-react";
 import { api } from "../services/api";
+import { getImageUrl } from "../utils/imageUtils";
 
 interface Auction {
   _id: string;
@@ -65,14 +66,6 @@ export function FeaturedAuctions() {
       </div>
     );
   }
-
-  const getImageUrl = (imagePath: string) => {
-    if (!imagePath) return "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=500";
-    // If it's already a full URL (Cloudinary or external), return as is
-    if (imagePath.startsWith("http")) return imagePath;
-    // Otherwise, it's a local path, prepend the API base URL
-    return `http://localhost:5000${imagePath}`;
-  };
 
   return (
     <div className="space-y-4">
