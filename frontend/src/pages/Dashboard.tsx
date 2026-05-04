@@ -23,30 +23,6 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { getImageUrl } from "../utils/imageUtils";
 
-const notifications = [
-  {
-    id: 1,
-    type: "warning",
-    title: "Auction ending soon",
-    message: "Your bid on Luxury Swiss Watch is ending in 2 hours",
-    time: "10 min ago",
-  },
-  {
-    id: 2,
-    type: "success",
-    title: "Bid placed successfully",
-    message: "Your bid of $5,200 has been placed",
-    time: "30 min ago",
-  },
-  {
-    id: 3,
-    type: "error",
-    title: "You've been outbid",
-    message: "Someone outbid you on Diamond Ring",
-    time: "1 hour ago",
-  },
-];
-
 export function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -363,44 +339,6 @@ export function Dashboard() {
                 </Button>
               </Link>
             </div>
-          </Card>
-
-          {/* Notifications */}
-          <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Notifications</h2>
-              <Badge className="bg-destructive/90">3</Badge>
-            </div>
-            <div className="space-y-3">
-              {notifications.map((notification) => (
-                <div 
-                  key={notification.id}
-                  className="p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-all cursor-pointer"
-                >
-                  <div className="flex items-start gap-2 mb-1">
-                    {notification.type === "warning" && (
-                      <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                    )}
-                    {notification.type === "success" && (
-                      <CheckCircle2 className="h-4 w-4 text-secondary mt-0.5 flex-shrink-0" />
-                    )}
-                    {notification.type === "error" && (
-                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Link to="/dashboard/notifications">
-              <Button variant="ghost" size="sm" className="w-full mt-3">
-                View All Notifications
-              </Button>
-            </Link>
           </Card>
 
           {/* Recent Activity */}
