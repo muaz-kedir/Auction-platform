@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { 
   TrendingUp, 
   DollarSign, 
@@ -16,8 +16,27 @@ import {
   Mail,
   Shield,
   XCircle,
-  Eye
+  Eye,
+  Trash2,
+  Edit,
+  MoreVertical
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../components/ui/alert-dialog";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
@@ -57,6 +76,9 @@ export function SellerDashboard() {
   const [recentAuctions, setRecentAuctions] = useState<Auction[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedAuction, setSelectedAuction] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
@@ -87,6 +109,21 @@ export function SellerDashboard() {
       toast.error(error.message || "Failed to reject auction");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleDeleteAuction = async () => {
+    if (!selectedAuction) return;
+
+    try {
+      await api.auctions.delete(selectedAuction);
+      toast.success("Auction deleted successfully");
+      fetchDashboardData(); // Refresh the list
+      setDeleteDialogOpen(false);
+      setSelectedAuction(null);
+    } catch (error: any) {
+      console.error("Failed to delete auction:", error);
+      toast.error(error.response?.data?.message || "Failed to delete auction");
     }
   };
 
@@ -470,35 +507,67 @@ export function SellerDashboard() {
                       </div>
                     </div>
                     
-                    {/* Approve/Reject buttons for Super Admin on pending auctions */}
-                    {isSuperAdmin && (auction.approvalStatus === "PENDING" || auction.approvalStatus === "SUBMITTED") && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Button
-                          size="sm"
-                          onClick={() => handleApprove(auction._id)}
-                          disabled={processingId === auction._id}
-                          className="bg-green-500 hover:bg-green-600"
-                        >
-                          {processingId === auction._id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleReject(auction._id)}
-                          disabled={processingId === auction._id}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    )}
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {/* Approve/Reject buttons for Super Admin on pending auctions */}
+                      {isSuperAdmin && (auction.approvalStatus === "PENDING" || auction.approvalStatus === "SUBMITTED") && (
+                        <>
+                          <Button
+                            size="sm"
+                            onClick={() => handleApprove(auction._id)}
+                            disabled={processingId === auction._id}
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            {processingId === auction._id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                Approve
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleReject(auction._id)}
+                            disabled={processingId === auction._id}
+                          >
+                            <XCircle className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                      
+                      {/* Edit/Delete dropdown for owner or admin */}
+                      {(isSuperAdmin || (!isSuperAdmin && auction.seller?._id === user?._id)) && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => navigate(`/dashboard/seller/edit/${auction._id}`)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => {
+                                setSelectedAuction(auction._id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -506,6 +575,27 @@ export function SellerDashboard() {
           )}
         </div>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Auction</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this auction? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedAuction(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAuction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
