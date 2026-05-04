@@ -158,3 +158,97 @@ exports.getUserActiveBids = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get User Won Auctions (where user is the winner)
+exports.getUserWonAuctions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const wonAuctions = await Auction.find({
+      winner: userId,
+      status: 'ENDED'
+    })
+    .populate('seller', 'name email')
+    .sort({ endTime: -1 });
+
+    const auctionsWithBidInfo = await Promise.all(
+      wonAuctions.map(async (auction) => {
+        // Get user's bid for this auction
+        const userBid = await Bid.findOne({
+          auction: auction._id,
+          bidder: userId
+        }).sort({ amount: -1 });
+
+        // Check payment status from wallet transactions
+        const wallet = await Wallet.findOne({ user: userId });
+        const isPaid = wallet?.transactions?.some(t => 
+          t.type === 'ESCROW' && 
+          t.description?.includes(auction._id.toString())
+        ) || false;
+
+        return {
+          _id: auction._id,
+          title: auction.title,
+          images: auction.images,
+          winningBid: auction.currentBid,
+          yourBid: userBid?.amount || auction.currentBid,
+          endDate: auction.endTime,
+          status: isPaid ? 'paid' : 'pending',
+          seller: auction.seller
+        };
+      })
+    );
+
+    res.json(auctionsWithBidInfo);
+
+  } catch (error) {
+    console.error("Error fetching won auctions:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get User Lost Auctions (auctions ended where user bid but didn't win)
+exports.getUserLostAuctions = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find all auctions where user placed a bid but is not the winner
+    const userBids = await Bid.find({ bidder: userId }).distinct('auction');
+    
+    const lostAuctions = await Auction.find({
+      _id: { $in: userBids },
+      status: 'ENDED',
+      winner: { $ne: userId }
+    })
+    .populate('seller', 'name email')
+    .populate('winner', 'name email')
+    .sort({ endTime: -1 });
+
+    const auctionsWithBidInfo = await Promise.all(
+      lostAuctions.map(async (auction) => {
+        // Get user's highest bid for this auction
+        const userBid = await Bid.findOne({
+          auction: auction._id,
+          bidder: userId
+        }).sort({ amount: -1 });
+
+        return {
+          _id: auction._id,
+          title: auction.title,
+          images: auction.images,
+          yourBid: userBid?.amount || 0,
+          winningBid: auction.currentBid,
+          endDate: auction.endTime,
+          seller: auction.seller,
+          winner: auction.winner
+        };
+      })
+    );
+
+    res.json(auctionsWithBidInfo);
+
+  } catch (error) {
+    console.error("Error fetching lost auctions:", error);
+    res.status(500).json({ error: error.message });
+  }
+};

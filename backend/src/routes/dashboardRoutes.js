@@ -9,4 +9,10 @@ router.get("/stats", protect, dashboardController.getUserDashboardStats);
 // Get user active bids
 router.get("/active-bids", protect, dashboardController.getUserActiveBids);
 
+// Get user won auctions
+router.get("/won-auctions", protect, dashboardController.getUserWonAuctions);
+
+// Get user lost auctions
+router.get("/lost-auctions", protect, dashboardController.getUserLostAuctions);
+
 module.exports = router;

@@ -461,6 +461,8 @@ export const api = {
       const queryString = limit ? `?limit=${limit}` : '';
       return apiRequest(`/dashboard/active-bids${queryString}`);
     },
+    getWonAuctions: () => apiRequest('/dashboard/won-auctions'),
+    getLostAuctions: () => apiRequest('/dashboard/lost-auctions'),
   },
 
   // Stats endpoints (public and admin)
