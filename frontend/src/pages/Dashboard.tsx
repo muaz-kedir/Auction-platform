@@ -17,11 +17,12 @@ import { Link } from "react-router";
 import { AreaChart, Area, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { useAuth } from "../hooks/useAuth";
 import { SellerDashboard } from "./SellerDashboard";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { getImageUrl } from "../utils/imageUtils";
+import { useSocket } from "../hooks/useSocket";
 
 export function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -55,50 +56,135 @@ export function Dashboard() {
     itemsWon: 0,
     successRate: 0,
     totalParticipatedAuctions: 0,
-    biddingActivity: []
+    biddingActivity: [],
+    isWalletVerified: false
   });
   const [activeBids, setActiveBids] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  
-  // Fetch dashboard data
-  useEffect(() => {
-    if (!isSeller) {
-      fetchDashboardData();
-    }
-  }, [isSeller]);
+  const socket = useSocket();
 
-  const fetchDashboardData = async () => {
+  // Define fetchDashboardData first (before any useEffect that references it)
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Fetch stats, active bids, and recent activity in parallel
-      const [statsData, bidsData, activityData] = await Promise.all([
-        api.dashboard.getStats(),
-        api.dashboard.getActiveBids(3),
-        api.dashboard.getRecentActivity()
-      ]);
-      
-      setStats(statsData);
-      setActiveBids(bidsData);
-      setRecentActivity(activityData);
+      console.log('📊 Fetching dashboard data for user:', user?._id);
+
+      let stats = {};
+      let bids = {};
+      let activities = {};
+
+      try {
+        // Try fetching stats first
+        const statsData = await api.dashboard.getStats();
+        console.log('📊 Stats API response:', statsData);
+        // Backend returns data directly, not wrapped in 'data' property
+        stats = statsData || {};
+      } catch (statsError) {
+        console.error('📊 Failed to fetch stats:', statsError);
+      }
+
+      try {
+        // Then fetch active bids
+        const bidsData = await api.dashboard.getActiveBids(3);
+        console.log('📊 Bids API response:', bidsData);
+        // Backend returns array directly or { bids: [...] }
+        bids = bidsData || [];
+      } catch (bidsError) {
+        console.error('📊 Failed to fetch bids:', bidsError);
+      }
+
+      try {
+        // Finally fetch recent activity
+        const activityData = await api.dashboard.getRecentActivity();
+        console.log('📊 Activity API response:', activityData);
+        // Backend returns array directly or { activities: [...] }
+        activities = activityData || [];
+      } catch (activityError) {
+        console.error('📊 Failed to fetch activity:', activityError);
+      }
+
+      console.log('📊 Final stats to display:', {
+        walletBalance: stats.walletBalance ?? 0,
+        activeBidsCount: stats.activeBidsCount ?? 0,
+        itemsWon: stats.itemsWon ?? 0,
+        successRate: stats.successRate ?? 0,
+        isWalletVerified: stats.isWalletVerified,
+        totalParticipatedAuctions: stats.totalParticipatedAuctions ?? 0,
+        isWalletVerified: stats.isWalletVerified
+      });
+
+      setStats({
+        walletBalance: stats.walletBalance ?? 0,
+        activeBidsCount: stats.activeBidsCount ?? 0,
+        itemsWon: stats.itemsWon ?? 0,
+        successRate: stats.successRate ?? 0,
+        totalParticipatedAuctions: stats.totalParticipatedAuctions ?? 0,
+        biddingActivity: stats.biddingActivity || [],
+        isWalletVerified: stats.isWalletVerified || false
+      });
+      setActiveBids(bids.bids || bids || []);
+      setRecentActivity(activities.activities || activities || []);
     } catch (error: any) {
       console.error("Failed to fetch dashboard data:", error);
-      toast.error("Failed to load dashboard data");
+      toast.error("Failed to load dashboard data: " + error.message);
     } finally {
       setLoading(false);
     }
-  };
-  
+  }, [user?._id]);
+
+  // Create a ref to store the fetch function for socket callbacks
+  const fetchDashboardRef = useRef(fetchDashboardData);
+
+  // Keep the ref updated with the latest function
+  useEffect(() => {
+    fetchDashboardRef.current = fetchDashboardData;
+  }, [fetchDashboardData]);
+
+  // Fetch dashboard data on mount - only run once when isSeller is determined
+  useEffect(() => {
+    if (!isSeller && user?._id) {
+      console.log('📊 Initial dashboard data fetch for user:', user._id);
+      fetchDashboardData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSeller, user?._id]); // Only depend on isSeller and user ID, not fetchDashboardData
+
+  // Listen for real-time updates - use ref to avoid dependency issues
+  useEffect(() => {
+    if (!socket || isSeller) return;
+
+    console.log('📊 Setting up dashboard real-time updates');
+
+    // Refresh stats when a bid is placed
+    const handleBidUpdate = (data: any) => {
+      console.log('📊 Bid update received, refreshing dashboard:', data);
+      // Call fetchDashboardData directly from the ref
+      fetchDashboardRef.current?.();
+    };
+
+    // Refresh stats when auction ends
+    const handleNotificationUpdate = (data: any) => {
+      if (data.type === 'auction_ended' || data.type === 'auction_created') {
+        console.log('📊 Auction event received, refreshing dashboard:', data);
+        fetchDashboardRef.current?.();
+      }
+    };
+
+    socket.on('bidUpdate', handleBidUpdate);
+    socket.on('notificationUpdate', handleNotificationUpdate);
+
+    return () => {
+      socket.off('bidUpdate', handleBidUpdate);
+      socket.off('notificationUpdate', handleNotificationUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, isSeller]); // Don't include fetchDashboardData here
+
   // For sellers, render the SellerDashboard component
   if (isSeller) {
     return <SellerDashboard />;
   }
 
-  // Mini chart data for stat cards
-  const miniChartData = [
-    { value: 20 }, { value: 35 }, { value: 25 }, { value: 40 }, { value: 30 }, { value: 45 }, { value: 38 }
-  ];
-  
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -123,17 +209,17 @@ export function Dashboard() {
           <StatCard
             title="Wallet Balance"
             value={`$${stats.walletBalance.toLocaleString()}`}
-            change={stats.walletBalance > 0 ? "Active" : "No funds"}
+            change={stats.isWalletVerified ? (stats.walletBalance > 0 ? "Active" : "No funds") : "Wallet not verified"}
             icon={Wallet}
             trend={stats.walletBalance > 0 ? "up" : "neutral"}
             chart={
               <ResponsiveContainer width="100%" height={40}>
-                <AreaChart data={miniChartData}>
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#2563EB" 
-                    fill="#2563EB" 
+                <AreaChart data={stats.biddingActivity || []}>
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#2563EB"
+                    fill="#2563EB"
                     fillOpacity={0.2}
                     strokeWidth={2}
                   />
@@ -149,12 +235,12 @@ export function Dashboard() {
             trend={stats.activeBidsCount > 0 ? "up" : "neutral"}
             chart={
               <ResponsiveContainer width="100%" height={40}>
-                <AreaChart data={miniChartData}>
-                  <Area 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#10B981" 
-                    fill="#10B981" 
+                <AreaChart data={stats.biddingActivity || []}>
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#10B981"
+                    fill="#10B981"
                     fillOpacity={0.2}
                     strokeWidth={2}
                   />

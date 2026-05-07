@@ -9,7 +9,8 @@ const {
   rejectAuction,
   getPendingAuctions,
   updateAuction,
-  deleteAuction
+  deleteAuction,
+  getAuctionWinner
 } = require("../controllers/auctionController");
 
 const { protect: auth } = require("../middleware/authMiddleware");
@@ -62,5 +63,8 @@ router.put("/:id", auth, (req, res, next) => {
 }, updateAuction);
 
 router.delete("/:id", auth, deleteAuction);
+
+// Get auction winner (public - anyone can see who won)
+router.get("/:id/winner", getAuctionWinner);
 
 module.exports = router;

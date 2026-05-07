@@ -56,7 +56,84 @@ type: mongoose.Schema.Types.ObjectId,
 ref: "User"
 },
 
-rejectionReason: String
+rejectionReason: String,
+
+// Escrow-related fields
+winningBid: {
+  type: Number,
+  default: 0,
+},
+
+escrowStatus: {
+  type: String,
+  enum: ["none", "awaiting_payment", "payment_secured", "delivered", "released", "refunded", "payment_failed"],
+  default: "none",
+},
+
+deliveryStatus: {
+  type: String,
+  enum: ["pending", "shipped", "delivered", "confirmed"],
+  default: "pending",
+},
+
+paymentStatus: {
+  type: String,
+  enum: ["pending", "held", "released", "refunded", "failed"],
+  default: "pending",
+},
+
+dispute: {
+  isOpen: {
+    type: Boolean,
+    default: false,
+  },
+  reason: {
+    type: String,
+    default: "",
+  },
+  openedAt: {
+    type: Date,
+    default: null,
+  },
+  resolvedAt: {
+    type: Date,
+    default: null,
+  },
+},
+
+// Timestamps for escrow flow
+escrowHoldAt: {
+  type: Date,
+  default: null,
+},
+
+deliveredAt: {
+  type: Date,
+  default: null,
+},
+
+releasedAt: {
+  type: Date,
+  default: null,
+},
+
+refundedAt: {
+  type: Date,
+  default: null,
+},
+
+// Transaction references
+escrowTransactionId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Transaction",
+  default: null,
+},
+
+releaseTransactionId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Transaction",
+  default: null,
+}
 },
 { timestamps: true }
 );

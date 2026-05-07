@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { AlertCircle, CheckCircle2, Gavel, Trophy, Wallet, TrendingUp, Bell, X, Loader2 } from "lucide-react";
 import { api } from "../services/api";
 import { toast } from "sonner";
+import { useSocket } from "../hooks/useSocket";
 
 // Notification type configuration for icons and colors
 const notificationConfig: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
@@ -57,6 +58,7 @@ export function Notifications() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, unread: 0, urgent: 0 });
   const [activeTab, setActiveTab] = useState("all");
+  const socket = useSocket();
 
   // Fetch notifications
   useEffect(() => {
@@ -64,7 +66,35 @@ export function Notifications() {
     fetchStats();
   }, []);
 
-  const fetchNotifications = async () => {
+  // Listen for real-time notification updates
+  useEffect(() => {
+    if (!socket) return;
+
+    console.log('🔔 Setting up notification socket listener');
+
+    const handleNotificationUpdate = (data: any) => {
+      console.log('📨 Real-time notification received:', data);
+
+      // Refresh notifications to get the latest from backend
+      fetchNotifications();
+      fetchStats();
+
+      // Show toast for new notification
+      if (data.message) {
+        toast.info(data.message, {
+          duration: 5000,
+        });
+      }
+    };
+
+    socket.on("notificationUpdate", handleNotificationUpdate);
+
+    return () => {
+      socket.off("notificationUpdate", handleNotificationUpdate);
+    };
+  }, [socket, fetchNotifications, fetchStats]);
+
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.notifications.getAll();
@@ -77,9 +107,9 @@ export function Notifications() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await api.notifications.getStats();
       if (response) {
@@ -88,7 +118,7 @@ export function Notifications() {
     } catch (error) {
       console.error("Error fetching stats:", error);
     }
-  };
+  }, []);
 
   const handleMarkAsRead = async (id: string) => {
     try {

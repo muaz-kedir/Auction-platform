@@ -29,6 +29,7 @@ interface Auction {
   endTime: string;
   status: string;
   approvalStatus: string;
+  bidCount?: number;
   seller: {
     _id: string;
     name: string;
@@ -51,6 +52,7 @@ export function AuctionListing() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
   const [priceRange, setPriceRange] = useState([0, 50000]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,9 +106,10 @@ export function AuctionListing() {
 
   const filteredAuctions = auctions.filter((auction) => {
     const matchesCategory = selectedCategory === "All" || auction.category?.name === selectedCategory;
+    const matchesStatus = selectedStatus === "All" || auction.status === selectedStatus;
     const matchesPrice = auction.currentBid >= priceRange[0] && auction.currentBid <= priceRange[1];
     const matchesSearch = auction.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesPrice && matchesSearch;
+    return matchesCategory && matchesStatus && matchesPrice && matchesSearch;
   });
 
   // Sort auctions
@@ -167,6 +170,18 @@ export function AuctionListing() {
             ))}
           </div>
 
+          {/* Status Filter */}
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-full lg:w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Status</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="ENDED">Ended</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Sort */}
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full lg:w-[180px]">
@@ -217,6 +232,7 @@ export function AuctionListing() {
                 className="gap-2"
                 onClick={() => {
                   setSelectedCategory("All");
+                  setSelectedStatus("All");
                   setPriceRange([0, 50000]);
                   setSearchQuery("");
                 }}
@@ -267,6 +283,7 @@ export function AuctionListing() {
               image={getImageUrl(auction.images[0])}
               currentBid={auction.currentBid}
               timeLeft={calculateTimeLeft(auction.endTime)}
+              bids={auction.bidCount || 0}
               category={auction.category?.name || "Uncategorized"}
               isLive={auction.status === "ACTIVE"}
             />

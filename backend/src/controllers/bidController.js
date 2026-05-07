@@ -5,6 +5,25 @@ const Wallet = require("../models/Wallet");
 const WalletVerification = require("../models/WalletVerification");
 
 const { getSocket } = require("../utils/socket");
+const { createBidPlacedNotification } = require("./notificationController");
+
+// Get all bids for an auction (for Recent Activity)
+exports.getAuctionBids = async (req, res) => {
+  try {
+    const { auctionId } = req.params;
+
+    const bids = await Bid.find({ auction: auctionId })
+      .populate('bidder', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json(bids);
+  } catch (error) {
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
 
 exports.placeBid = async (req, res) => {
 try {
@@ -89,9 +108,10 @@ lastWallet.heldBalance -= lastBid.amount;
 await lastWallet.save();
 
 await Notification.create({
-user: lastBid.bidder,
+userId: lastBid.bidder,
+title: "Outbid Alert",
 message: "You have been outbid and refunded",
-type: "OUTBID"
+type: "outbid"
 });
 }
 
@@ -109,14 +129,13 @@ await bid.populate('bidder', 'name email');
 auction.currentBid = amount;
 await auction.save();
 
-
-// notify seller
-await Notification.create({
-user: auction.seller._id,
-message: "New bid placed on your auction",
-type: "BID"
-});
-
+// Create bid notifications (bidder + outbid notification)
+try {
+  await createBidPlacedNotification(auction, bid, lastBid?.bidder?._id);
+} catch (notifError) {
+  console.error("Error creating bid notification:", notifError.message);
+  // Don't fail the bid if notification fails
+}
 
 // realtime - emit detailed bid information
 const io = getSocket();
@@ -139,14 +158,22 @@ if (io) {
       bidderName: req.user.name
     }
   };
-  
+
   console.log('🔥 Emitting bidUpdate to room:', auctionId);
   console.log('🔥 Bid update data:', JSON.stringify(bidUpdate, null, 2));
   console.log('🔥 Socket.IO instance exists:', !!io);
   console.log('🔥 Number of clients in room:', io.sockets.adapter.rooms.get(auctionId)?.size || 0);
-  
+
   io.to(auctionId).emit("bidUpdate", bidUpdate);
-  
+
+  // Also emit notification update to all relevant users
+  io.emit("notificationUpdate", {
+    type: "bid_placed",
+    auctionId: auction._id,
+    message: `New bid placed on "${auction.title}"`,
+    timestamp: new Date().toISOString()
+  });
+
   console.log('✅ bidUpdate emitted successfully');
 }
 

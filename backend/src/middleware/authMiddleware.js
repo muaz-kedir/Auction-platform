@@ -35,4 +35,25 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// Admin only middleware - requires user to be admin or super_admin
+const adminOnly = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const allowedRoles = ["admin", "super_admin"];
+    if (!allowedRoles.includes(req.user.role)) {
+      console.log("Admin middleware - Access denied for role:", req.user.role);
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    console.log("Admin middleware - Access granted for:", req.user.email);
+    next();
+  } catch (error) {
+    console.error("Admin middleware - Error:", error.message);
+    res.status(403).json({ message: "Admin access required" });
+  }
+};
+
+module.exports = { protect, adminOnly };

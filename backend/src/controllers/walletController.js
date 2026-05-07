@@ -5,6 +5,7 @@ const Bid = require("../models/Bid");
 const Notification = require("../models/Notification");
 const { getSocket } = require("../utils/socket");
 const User = require("../models/User");
+const { createBidPlacedNotification } = require("./notificationController");
 
 // Get my wallet
 exports.getMyWallet = async (req, res) => {
@@ -202,6 +203,14 @@ exports.canBid = async (req, res) => {
 exports.placeBidWithWallet = async (req, res) => {
   try {
     const { auctionId, bidAmount } = req.body;
+    
+    console.log('🔨 [PLACE BID] User placing bid:', {
+      userId: req.user._id,
+      userName: req.user.name,
+      userEmail: req.user.email,
+      auctionId,
+      bidAmount
+    });
 
     if (!auctionId || !bidAmount || bidAmount <= 0) {
       return res.status(400).json({
@@ -257,9 +266,10 @@ exports.placeBidWithWallet = async (req, res) => {
 
         // Notify last bidder
         await Notification.create({
-          user: lastBid.bidder,
+          userId: lastBid.bidder,
+          title: "Outbid Alert",
           message: "You have been outbid and refunded",
-          type: "OUTBID"
+          type: "outbid"
         });
       }
     }
@@ -275,17 +285,25 @@ exports.placeBidWithWallet = async (req, res) => {
       bidder: req.user._id,
       amount: bidAmount
     });
+    
+    console.log('✅ [PLACE BID] Bid created:', {
+      bidId: bid._id,
+      bidder: bid.bidder,
+      auction: bid.auction,
+      amount: bid.amount
+    });
 
     // Update auction current bid
     auction.currentBid = bidAmount;
     await auction.save();
 
-    // Notify seller
-    await Notification.create({
-      user: auction.seller._id,
-      message: "New bid placed on your auction",
-      type: "BID"
-    });
+    // Create bid notifications (bidder + outbid notification)
+    try {
+      await createBidPlacedNotification(auction, bid, lastBid?.bidder?._id);
+    } catch (notifError) {
+      console.error("[WALLET BID] Error creating bid notification:", notifError.message);
+      // Don't fail the bid if notification fails
+    }
 
     // 🔥 EMIT SOCKET EVENT FOR REAL-TIME UPDATES
     const io = getSocket();
@@ -308,13 +326,21 @@ exports.placeBidWithWallet = async (req, res) => {
           bidderName: req.user.name
         }
       };
-      
+
       console.log('🔥 [WALLET BID] Emitting bidUpdate to room:', auctionId);
       console.log('🔥 [WALLET BID] Bid update data:', JSON.stringify(bidUpdate, null, 2));
       console.log('🔥 [WALLET BID] Number of clients in room:', io.sockets.adapter.rooms.get(auctionId)?.size || 0);
-      
+
       io.to(auctionId).emit("bidUpdate", bidUpdate);
-      
+
+      // Also emit notification update to all relevant users
+      io.emit("notificationUpdate", {
+        type: "bid_placed",
+        auctionId: auction._id,
+        message: `New bid placed on "${auction.title}"`,
+        timestamp: new Date().toISOString()
+      });
+
       console.log('✅ [WALLET BID] bidUpdate emitted successfully');
     }
 

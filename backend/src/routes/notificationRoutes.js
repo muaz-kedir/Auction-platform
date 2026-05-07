@@ -13,15 +13,19 @@ const {
 
 const { protect: auth, adminOnly } = require("../middleware/authMiddleware");
 
-// User routes
+// User routes - GET endpoints
 router.get("/", auth, getMyNotifications);
 router.get("/stats", auth, getNotificationStats);
+router.get("/admin/all", auth, adminOnly, getAllNotifications);
+
+// User routes - PUT endpoints
 router.put("/:id/read", auth, markAsRead);
 router.put("/read-all", auth, markAllAsRead);
+
+// User routes - DELETE endpoints
 router.delete("/:id", auth, deleteNotification);
 
-// Admin routes
-router.post("/", auth, adminOnly, createNotification);
-router.get("/admin/all", auth, adminOnly, getAllNotifications);
+// Admin routes - POST endpoints
+router.post("/create", auth, adminOnly, createNotification);
 
 module.exports = router;

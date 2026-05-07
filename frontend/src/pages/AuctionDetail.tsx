@@ -11,7 +11,11 @@ import { Separator } from "../components/ui/separator";
 import { CountdownTimer } from "../components/auction/CountdownTimer";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { RecentActivity } from "../components/auction/RecentActivity";
-import { useAuctionSocket } from "../hooks/useSocket";
+import { WinnerCelebration } from "../components/celebration/WinnerCelebration";
+import { EscrowStatus } from "../components/escrow";
+import { BidWalletSelector } from "../components/wallet/BidWalletSelector";
+import { InsufficientBalanceModal } from "../components/wallet/InsufficientBalanceModal";
+import { useAuctionSocket, useSocket } from "../hooks/useSocket";
 import {
   Heart,
   Share2,
@@ -31,6 +35,8 @@ import {
   Wallet,
   Clock,
   XCircle,
+  CreditCard,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "../services/api";
@@ -96,16 +102,46 @@ export function AuctionDetail() {
     walletAmount: "",
   });
   const [submittingFunding, setSubmittingFunding] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"manual" | "chapa">("manual");
+  const [chapaProcessing, setChapaProcessing] = useState(false);
 
-  // Wallet balance info
+  // Wallet balance info - Multi-wallet support
   const [walletInfo, setWalletInfo] = useState({
     maxBiddingAmount: 0,
     remainingBalance: 0,
     totalUsedAmount: 0,
+    primaryBalance: 0,
+    secondaryBalance: 0,
+    primaryHeld: 0,
+    secondaryHeld: 0,
   });
+
+  // Selected wallet for bidding
+  const [selectedBidWallet, setSelectedBidWallet] = useState<"primary" | "secondary">("primary");
+
+  // Insufficient balance modal state
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [insufficientBalanceInfo, setInsufficientBalanceInfo] = useState({
+    requiredAmount: 0,
+    availableBalance: 0,
+    shortfall: 0,
+  });
+
+  // Transfer modal state for quick transfer
+  const [showQuickTransfer, setShowQuickTransfer] = useState(false);
+  const [transferAmount, setTransferAmount] = useState("");
 
   // Real-time bidding state
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  // Winner celebration state
+  const [winnerInfo, setWinnerInfo] = useState<{
+    winnerId: string;
+    winnerName: string;
+    winningBid: number;
+  } | null>(null);
+  const [showWinnerCelebration, setShowWinnerCelebration] = useState(false);
+  const [isCurrentUserWinner, setIsCurrentUserWinner] = useState(false);
   
   // Use refs to avoid recreating callback
   const auctionRef = useRef(auction);
@@ -169,52 +205,134 @@ export function AuctionDetail() {
     return () => clearInterval(interval);
   }, [isBuyer, fundingStatus]);
 
+  // Check for winner when auction status changes to ENDED
+  useEffect(() => {
+    if (auction?.status === "ENDED") {
+      checkWinnerStatus();
+    }
+  }, [auction?.status, auction?._id]);
+
   // Real-time socket handler for bid updates
   const handleBidUpdate = useCallback((data: any) => {
     console.log('📥 Bid update received:', data);
     console.log('📥 Current auction:', auctionRef.current?._id);
     console.log('📥 Data auctionId:', data.auctionId);
-    console.log('📥 Current user:', userRef.current?._id);
+    console.log('📥 Current user from ref:', userRef.current?._id);
     console.log('📥 Bidder ID:', data.bidder?._id);
-    
+
     const currentAuction = auctionRef.current;
-    const currentUser = userRef.current;
-    
+    // Get user from localStorage as fallback to ensure we have the correct user
+    const storedUser = localStorage.getItem('user');
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    // Prefer ref but fallback to localStorage
+    const currentUser = userRef.current || parsedUser;
+
+    console.log('📥 Current user (with fallback):', currentUser?._id);
+
     if (currentAuction && data.auctionId === currentAuction._id) {
       console.log('✅ Auction ID matches - processing update');
-      
+
       // Update current bid
       setAuction(prev => prev ? { ...prev, currentBid: data.currentBid } : null);
-      
+
       // Add to recent activity
       if (data.activity) {
-        const isOwnBid = data.bidder._id === currentUser?._id;
+        // Convert IDs to strings for comparison (handles ObjectId vs string mismatch)
+        const bidderId = String(data.bidder?._id || '');
+        const currentUserId = String(currentUser?._id || '');
+        const isOwnBid = bidderId === currentUserId && bidderId !== '' && currentUserId !== '';
+        console.log('🎯 Bidder ID (string):', bidderId);
+        console.log('🎯 Current User ID (string):', currentUserId);
         console.log('🎯 Is own bid:', isOwnBid);
-        
+
+        // Check if current user was outbid
+        const wasOutbid = data.previousBidder && currentUser?.name === data.previousBidder;
+        console.log('🎯 Was outbid:', wasOutbid);
+
+        // Determine activity type and message
+        let activityType: 'bid' | 'outbid' = 'bid';
+        let activityMessage: string;
+
+        if (isOwnBid) {
+          if (data.previousBidder && data.previousBidder !== currentUser?.name) {
+            activityType = 'outbid';
+            activityMessage = `You outbid ${data.previousBidder}`;
+          } else {
+            activityMessage = 'You placed a bid';
+          }
+        } else {
+          if (wasOutbid) {
+            activityType = 'outbid';
+            activityMessage = `${data.activity.bidderName} outbid you`;
+          } else if (data.previousBidder) {
+            activityType = 'outbid';
+            activityMessage = `${data.activity.bidderName} outbid ${data.previousBidder}`;
+          } else {
+            activityMessage = `${data.activity.bidderName} placed a bid`;
+          }
+        }
+
         const newActivity = {
           id: `${data.auctionId}-${Date.now()}`,
-          type: data.activity.type,
-          message: isOwnBid ? 'You placed a bid' : `${data.activity.bidderName} placed a bid`,
+          type: activityType,
+          message: activityMessage,
           amount: data.activity.amount,
           time: data.activity.time,
           bidderName: data.activity.bidderName,
           isOwn: isOwnBid,
           isNew: true
         };
-        
+
         console.log('📝 Adding activity:', newActivity);
-        
+
         setRecentActivity(prev => {
           console.log('📝 Previous activities:', prev);
+
+          // Check for duplicate - same bidder and similar amount/time (within 5 seconds)
+          const isDuplicate = prev.some(a =>
+            a.bidderName === newActivity.bidderName &&
+            a.amount === newActivity.amount &&
+            Math.abs(new Date(a.time).getTime() - new Date(newActivity.time).getTime()) < 5000
+          );
+
+          if (isDuplicate) {
+            console.log('📝 Duplicate activity detected, skipping');
+            // Just mark existing as not new, don't add duplicate
+            return prev.map(a => ({ ...a, isNew: false }));
+          }
+
+          // Check for optimistic update to replace (same user, similar amount, marked as own)
+          const hasOptimistic = prev.some(a =>
+            a.isOwn &&
+            a.amount === newActivity.amount &&
+            Math.abs(new Date(a.time).getTime() - new Date(newActivity.time).getTime()) < 5000
+          );
+
+          if (hasOptimistic) {
+            console.log('📝 Replacing optimistic update with confirmed');
+            // Replace the optimistic activity with the confirmed one
+            return prev.map(a =>
+              (a.isOwn && a.amount === newActivity.amount &&
+               Math.abs(new Date(a.time).getTime() - new Date(newActivity.time).getTime()) < 5000)
+                ? { ...newActivity, isNew: false }
+                : { ...a, isNew: false }
+            ).slice(0, 10);
+          }
+
+          // Add new activity at the top
           const updated = prev.map(a => ({ ...a, isNew: false }));
           const result = [newActivity, ...updated].slice(0, 10);
           console.log('📝 New activities:', result);
           return result;
         });
-        
+
         // Notification for other users
         if (!isOwnBid) {
-          toast.info(`${data.bidder.name} placed a bid of $${data.currentBid.toLocaleString()}`);
+          if (wasOutbid) {
+            toast.warning(`${data.bidder.name} outbid you with $${data.currentBid.toLocaleString()}!`);
+          } else {
+            toast.info(`${data.bidder.name} placed a bid of $${data.currentBid.toLocaleString()}`);
+          }
         }
       }
     } else {
@@ -222,20 +340,137 @@ export function AuctionDetail() {
     }
   }, []); // No dependencies - uses refs instead
 
+  // Real-time socket handler for winner announcements
+  const handleWinnerAnnouncement = useCallback((data: any) => {
+    console.log('🏆 Winner announcement received:', data);
+    
+    const currentAuction = auctionRef.current;
+    const currentUser = userRef.current;
+    
+    if (currentAuction && data.auctionId === currentAuction._id) {
+      console.log('✅ Winner announcement matches current auction');
+      
+      // Update auction status
+      setAuction(prev => prev ? { ...prev, status: "ENDED" } : null);
+      
+      // Set winner info
+      setWinnerInfo({
+        winnerId: data.winnerId,
+        winnerName: data.winnerName,
+        winningBid: data.winningBid,
+      });
+      
+      // Check if current user is the winner
+      const currentUserId = currentUser?._id;
+      const isWinner = currentUserId === data.winnerId;
+      setIsCurrentUserWinner(isWinner);
+      
+      // Show celebration if current user is the winner
+      if (isWinner) {
+        console.log('🎉 Current user is the winner! Showing celebration...');
+        setShowWinnerCelebration(true);
+        toast.success(`🎉 Congratulations! You won "${data.auctionTitle}" with $${data.winningBid.toLocaleString()}!`);
+      } else {
+        // Show notification for other users
+        toast.info(`${data.winnerName} won the auction "${data.auctionTitle}" with $${data.winningBid.toLocaleString()}`);
+      }
+    }
+  }, []);
+
   // Connect to socket for real-time updates
   console.log('🔌 Setting up auction socket for auction:', auction?._id);
   useAuctionSocket(auction?._id, handleBidUpdate);
+  
+  // Listen for winner announcements
+  const socket = useSocket();
+  useEffect(() => {
+    if (!socket) return;
+    
+    socket.on("winnerAnnounced", handleWinnerAnnouncement);
+    
+    return () => {
+      socket.off("winnerAnnounced", handleWinnerAnnouncement);
+    };
+  }, [socket, handleWinnerAnnouncement]);
 
   const fetchAuction = async () => {
     try {
       setLoadingAuction(true);
       const data = await api.auctions.getById(id!);
       setAuction(data);
+      // Load bid history after auction is fetched
+      await fetchBidHistory(id!);
     } catch (error: any) {
       console.error("Failed to fetch auction:", error);
       toast.error("Failed to load auction details");
     } finally {
       setLoadingAuction(false);
+    }
+  };
+
+  const fetchBidHistory = async (auctionId: string) => {
+    try {
+      const bids = await api.bids.getAuctionBids(auctionId);
+      console.log('📊 Loaded bid history:', bids);
+
+      // Get user from localStorage for reliable ID comparison
+      const storedUser = localStorage.getItem('user');
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      const currentUserId = user?._id || parsedUser?._id;
+      console.log('📊 Current user ID for bid history:', currentUserId);
+
+      // Convert bids to activities
+      const activities = bids.map((bid: any) => {
+        const bidderId = String(bid.bidder?._id || '');
+        const userId = String(currentUserId || '');
+        const isOwnBid = bidderId === userId && bidderId !== '' && userId !== '';
+        console.log('📊 Bid:', bid.bidder?.name, 'Bidder ID:', bidderId, 'User ID:', userId, 'Is Own:', isOwnBid);
+        return {
+          id: bid._id,
+          type: 'bid' as const,
+          message: isOwnBid ? 'You placed a bid' : `${bid.bidder?.name || 'Someone'} placed a bid`,
+          amount: bid.amount,
+          time: bid.createdAt,
+          bidderName: bid.bidder?.name || 'Someone',
+          isOwn: isOwnBid,
+          isNew: false
+        };
+      });
+
+      setRecentActivity(activities);
+    } catch (error) {
+      console.error('Failed to load bid history:', error);
+      // Don't show error toast - the auction can still work without history
+    }
+  };
+
+  // Check if current user is the winner
+  const checkWinnerStatus = async () => {
+    if (!id || !auction || auction.status !== "ENDED") return;
+    
+    try {
+      const winnerData = await api.auctions.getWinner(id);
+      console.log('🏆 Winner data:', winnerData);
+      
+      if (winnerData.hasWinner && winnerData.winner) {
+        setWinnerInfo({
+          winnerId: winnerData.winner._id,
+          winnerName: winnerData.winner.name,
+          winningBid: winnerData.winningBid,
+        });
+        
+        // Check if current user is the winner
+        const currentUserId = user?._id;
+        const isWinner = currentUserId === winnerData.winner._id;
+        setIsCurrentUserWinner(isWinner);
+        
+        if (isWinner) {
+          console.log('🎉 Current user is the winner! Showing celebration...');
+          setShowWinnerCelebration(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check winner status:', error);
     }
   };
 
@@ -273,6 +508,10 @@ export function AuctionDetail() {
         maxBiddingAmount: status.maxBiddingAmount || 0,
         remainingBalance: status.remainingBalance || 0,
         totalUsedAmount: status.totalUsedAmount || 0,
+        primaryBalance: status.primaryBalance || 0,
+        secondaryBalance: status.secondaryBalance || 0,
+        primaryHeld: status.primaryHeld || 0,
+        secondaryHeld: status.secondaryHeld || 0,
       });
 
       if (status.fundingStatus === "approved" && status.canBid) {
@@ -343,6 +582,45 @@ export function AuctionDetail() {
     }
   };
 
+  // Chapa instant payment handler
+  const handleChapaPayment = async () => {
+    const { walletAmount, phone } = fundingForm;
+    
+    const amount = parseFloat(walletAmount);
+    if (isNaN(amount) || amount < 10) {
+      toast.error("Minimum deposit amount is 10 ETB");
+      return;
+    }
+
+    try {
+      setChapaProcessing(true);
+      
+      // Initialize Chapa payment
+      const returnUrl = `${window.location.origin}/payment/success`;
+      const response = await api.payments.initialize({
+        amount,
+        phone: phone || undefined,
+        returnUrl,
+      });
+      
+      // Store transaction reference
+      sessionStorage.setItem("pending_payment_tx_ref", response.tx_ref);
+      sessionStorage.setItem("pending_payment_amount", String(amount));
+      
+      toast.success("Redirecting to Chapa payment gateway...");
+      
+      // Redirect to Chapa checkout
+      if (response.checkout_url) {
+        window.location.href = response.checkout_url;
+      } else {
+        throw new Error("No checkout URL received");
+      }
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to initialize payment");
+      setChapaProcessing(false);
+    }
+  };
+
   const calculateTimeLeft = (endTime: string) => {
     const end = new Date(endTime).getTime();
     const now = new Date().getTime();
@@ -361,7 +639,7 @@ export function AuctionDetail() {
 
   const handlePlaceBid = async () => {
     if (!auction) return;
-    
+
     const amount = parseFloat(bidAmount);
     const minBid = auction.currentBid + 10;
 
@@ -370,18 +648,32 @@ export function AuctionDetail() {
       return;
     }
 
-    // Check if bid exceeds remaining balance
-    if (amount > walletInfo.remainingBalance) {
-      toast.error("Insufficient wallet balance");
+    // Check balance in selected wallet
+    const selectedWalletBalance = selectedBidWallet === "primary"
+      ? walletInfo.primaryBalance - walletInfo.primaryHeld
+      : walletInfo.secondaryBalance - walletInfo.secondaryHeld;
+
+    if (amount > selectedWalletBalance) {
+      // Show insufficient balance modal
+      const otherWalletBalance = selectedBidWallet === "primary"
+        ? walletInfo.secondaryBalance - walletInfo.secondaryHeld
+        : walletInfo.primaryBalance - walletInfo.primaryHeld;
+
+      setInsufficientBalanceInfo({
+        requiredAmount: amount,
+        availableBalance: selectedWalletBalance,
+        shortfall: amount - selectedWalletBalance,
+      });
+      setShowInsufficientBalance(true);
       return;
     }
 
     try {
       setPlacingBid(true);
-      
+
       // Optimistic update
       setAuction(prev => prev ? { ...prev, currentBid: amount } : null);
-      
+
       // Add to activity optimistically
       const newActivity = {
         id: `${auction._id}-${Date.now()}`,
@@ -393,16 +685,16 @@ export function AuctionDetail() {
         isOwn: true,
         isNew: true
       };
-      
+
       setRecentActivity(prev => {
         const updated = prev.map(a => ({ ...a, isNew: false }));
         return [newActivity, ...updated].slice(0, 10);
       });
-      
-      // Place bid through wallet system (deducts from balance)
-      await api.wallet.placeBidWithWallet(auction._id, amount);
+
+      // Place bid through wallet system with selected wallet
+      await api.wallet.placeBidWithWallet(auction._id, amount, selectedBidWallet);
       toast.success("Bid placed successfully!", {
-        description: `Your bid of $${amount.toLocaleString()} has been placed.`,
+        description: `Your bid of $${amount.toLocaleString()} has been placed from your ${selectedBidWallet} wallet.`,
       });
       setBidAmount("");
       // Update wallet info
@@ -415,6 +707,31 @@ export function AuctionDetail() {
     } finally {
       setPlacingBid(false);
     }
+  };
+
+  // Handle quick transfer from insufficient balance modal
+  const handleQuickTransfer = async () => {
+    const amount = insufficientBalanceInfo.shortfall;
+    const fromWallet = selectedBidWallet === "primary" ? "secondary" : "primary";
+    const toWallet = selectedBidWallet;
+
+    try {
+      await api.wallet.transfer(amount, fromWallet, toWallet);
+      toast.success(`$${amount.toLocaleString()} transferred from ${fromWallet} to ${toWallet} wallet`);
+      setShowInsufficientBalance(false);
+      setShowQuickTransfer(false);
+      // Refresh wallet info
+      await fetchFundingStatus(false);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to transfer funds");
+    }
+  };
+
+  // Handle adding funds inline (no navigation)
+  const handleAddFunds = async (amount: number, paymentMethod: string) => {
+    await api.wallet.deposit(amount, selectedBidWallet, paymentMethod);
+    // Refresh wallet info after deposit
+    await fetchFundingStatus(false);
   };
 
   // Show loading spinner only when actually loading
@@ -532,6 +849,47 @@ export function AuctionDetail() {
 
             {fundingStatus === "not_created" && (
               <div className="space-y-4">
+                {/* Payment Method Selector */}
+                <div className="space-y-2">
+                  <Label>Select Payment Method</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setPaymentMethod("manual")}
+                      disabled={submittingFunding || chapaProcessing}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        paymentMethod === "manual"
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">Manual Request</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Admin approval required
+                      </p>
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod("chapa")}
+                      disabled={submittingFunding || chapaProcessing}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        paymentMethod === "chapa"
+                          ? "border-green-500 bg-green-50"
+                          : "border-border hover:border-green-500/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-green-600" />
+                        <span className="font-medium text-green-700">Instant Pay</span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">
+                        Pay with Chapa (immediate)
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
@@ -598,13 +956,19 @@ export function AuctionDetail() {
                     This amount will be held in escrow and will limit your maximum bidding power.
                   </p>
                 </div>
-                <Button className="w-full gap-2" onClick={submitFundingRequest} disabled={submittingFunding}>
-                  {submittingFunding ? (
+                <Button
+                  className={`w-full gap-2 ${paymentMethod === "chapa" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                  onClick={paymentMethod === "chapa" ? handleChapaPayment : submitFundingRequest}
+                  disabled={submittingFunding || chapaProcessing}
+                >
+                  {submittingFunding || chapaProcessing ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : paymentMethod === "chapa" ? (
+                    <CreditCard className="h-4 w-4" />
                   ) : (
                     <Wallet className="h-4 w-4" />
                   )}
-                  Submit Funding Request
+                  {paymentMethod === "chapa" ? "Pay with Chapa" : "Submit Funding Request"}
                 </Button>
               </div>
             )}
@@ -642,6 +1006,47 @@ export function AuctionDetail() {
                   <p className="text-sm text-muted-foreground mt-1">Please submit a new funding request.</p>
                 </div>
                 <div className="space-y-4">
+                  {/* Payment Method Selector */}
+                  <div className="space-y-2">
+                    <Label>Select Payment Method</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setPaymentMethod("manual")}
+                        disabled={submittingFunding || chapaProcessing}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          paymentMethod === "manual"
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">Manual Request</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Admin approval required
+                        </p>
+                      </button>
+                      <button
+                        onClick={() => setPaymentMethod("chapa")}
+                        disabled={submittingFunding || chapaProcessing}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          paymentMethod === "chapa"
+                            ? "border-green-500 bg-green-50"
+                            : "border-border hover:border-green-500/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-green-700">Instant Pay</span>
+                        </div>
+                        <p className="text-xs text-green-600 mt-1">
+                          Pay with Chapa (immediate)
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="fullName-re">Full Name</Label>
@@ -705,13 +1110,19 @@ export function AuctionDetail() {
                       />
                     </div>
                   </div>
-                  <Button className="w-full gap-2" onClick={submitFundingRequest} disabled={submittingFunding}>
-                    {submittingFunding ? (
+                  <Button
+                    className={`w-full gap-2 ${paymentMethod === "chapa" ? "bg-green-600 hover:bg-green-700" : ""}`}
+                    onClick={paymentMethod === "chapa" ? handleChapaPayment : submitFundingRequest}
+                    disabled={submittingFunding || chapaProcessing}
+                  >
+                    {submittingFunding || chapaProcessing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : paymentMethod === "chapa" ? (
+                      <CreditCard className="h-4 w-4" />
                     ) : (
                       <Wallet className="h-4 w-4" />
                     )}
-                    Re-submit Funding Request
+                    {paymentMethod === "chapa" ? "Pay with Chapa" : "Re-submit Funding Request"}
                   </Button>
                 </div>
               </div>
@@ -932,25 +1343,33 @@ export function AuctionDetail() {
                 <>
                   <Separator />
 
-                  {/* Wallet Info Display */}
+                  {/* Multi-Wallet Info Display */}
                   {isBuyer && fundingStatus === "approved" && (
-                    <div className="space-y-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Wallet className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-semibold">Your Wallet</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 text-sm">
-                        <div className="space-y-1">
-                          <p className="text-muted-foreground text-xs">Max Limit</p>
-                          <p className="font-semibold">${walletInfo.maxBiddingAmount.toLocaleString()}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-muted-foreground text-xs">Used</p>
-                          <p className="font-semibold text-orange-500">${walletInfo.totalUsedAmount.toLocaleString()}</p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-muted-foreground text-xs">Remaining</p>
-                          <p className="font-semibold text-green-500">${walletInfo.remainingBalance.toLocaleString()}</p>
+                    <div className="space-y-4">
+                      {/* Wallet Selector */}
+                      <BidWalletSelector
+                        primaryWallet={{
+                          balance: walletInfo.primaryBalance,
+                          heldBalance: walletInfo.primaryHeld,
+                          available: walletInfo.primaryBalance - walletInfo.primaryHeld,
+                        }}
+                        secondaryWallet={{
+                          balance: walletInfo.secondaryBalance,
+                          heldBalance: walletInfo.secondaryHeld,
+                          available: walletInfo.secondaryBalance - walletInfo.secondaryHeld,
+                        }}
+                        selectedWallet={selectedBidWallet}
+                        onSelect={setSelectedBidWallet}
+                        requiredAmount={bidAmount ? parseFloat(bidAmount) : undefined}
+                      />
+
+                      {/* Total Wallet Summary */}
+                      <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Total Available Across Wallets:</span>
+                          <span className="font-semibold text-green-600">
+                            ${(walletInfo.primaryBalance - walletInfo.primaryHeld + walletInfo.secondaryBalance - walletInfo.secondaryHeld).toLocaleString()}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -969,10 +1388,16 @@ export function AuctionDetail() {
                         placeholder={`${minBid.toLocaleString()}`}
                         value={bidAmount}
                         onChange={(e) => setBidAmount(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handlePlaceBid();
+                          }
+                        }}
                         className="flex-1"
                         disabled={placingBid}
                       />
-                      <Button onClick={handlePlaceBid} className="gap-2" disabled={placingBid}>
+                      <Button type="button" onClick={handlePlaceBid} className="gap-2" disabled={placingBid}>
                         {placingBid ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
@@ -982,28 +1407,28 @@ export function AuctionDetail() {
                       </Button>
                     </div>
                     <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1" 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setBidAmount(String(minBid))}
                         disabled={placingBid}
                       >
                         ${minBid.toLocaleString()}
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1" 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setBidAmount(String(minBid + 100))}
                         disabled={placingBid}
                       >
                         ${(minBid + 100).toLocaleString()}
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1" 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setBidAmount(String(minBid + 250))}
                         disabled={placingBid}
                       >
@@ -1043,6 +1468,14 @@ export function AuctionDetail() {
               </div>
             </div>
           </Card>
+
+          {/* Escrow Status - Show for ended auctions */}
+          {auction?.status === "ENDED" && (
+            <EscrowStatus 
+              auctionId={auction._id} 
+              auctionStatus={auction.status} 
+            />
+          )}
 
           {/* Trust & Safety */}
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
@@ -1084,6 +1517,33 @@ export function AuctionDetail() {
           <RecentActivity activities={recentActivity} />
         </div>
       </div>
+
+      {/* Winner Celebration Modal */}
+      <WinnerCelebration
+        isOpen={showWinnerCelebration}
+        onClose={() => setShowWinnerCelebration(false)}
+        winnerName={winnerInfo?.winnerName || ""}
+        auctionTitle={auction?.title || ""}
+        winningBid={winnerInfo?.winningBid || 0}
+        isCurrentUser={isCurrentUserWinner}
+      />
+
+      {/* Insufficient Balance Modal */}
+      <InsufficientBalanceModal
+        isOpen={showInsufficientBalance}
+        onClose={() => setShowInsufficientBalance(false)}
+        requiredAmount={insufficientBalanceInfo.requiredAmount}
+        availableBalance={insufficientBalanceInfo.availableBalance}
+        shortfall={insufficientBalanceInfo.shortfall}
+        selectedWallet={selectedBidWallet}
+        otherWalletBalance={
+          selectedBidWallet === "primary"
+            ? walletInfo.secondaryBalance - walletInfo.secondaryHeld
+            : walletInfo.primaryBalance - walletInfo.primaryHeld
+        }
+        onTransfer={handleQuickTransfer}
+        onAddFunds={handleAddFunds}
+      />
     </div>
   );
 }

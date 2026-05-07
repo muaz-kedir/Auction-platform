@@ -6,37 +6,69 @@ const Auction = require("../models/Auction");
 exports.getUserDashboardStats = async (req, res) => {
   try {
     const userId = req.user._id;
+    console.log('📊 Getting dashboard stats for user:', userId);
 
-    // 1. Get Wallet Balance
+    // 1. Get Verified Wallet Balance
     let wallet = await Wallet.findOne({ user: userId });
-    const walletBalance = wallet ? (wallet.balance || wallet.remainingBalance || 0) : 0;
-
-    // 2. Get Active Bids (bids on auctions that are still ACTIVE)
-    const activeBids = await Bid.find({ bidder: userId })
-      .populate({
-        path: 'auction',
-        match: { status: 'ACTIVE' }
-      });
+    console.log('📊 Wallet found:', wallet ? 'YES' : 'NO');
     
-    // Filter out null auctions (those that don't match the status)
-    const activeAuctions = activeBids.filter(bid => bid.auction !== null);
-    const activeBidsCount = activeAuctions.length;
+    // Check if wallet is verified (walletVerified = true OR fundingStatus = "approved")
+    const isWalletVerified = wallet && (wallet.walletVerified === true || wallet.fundingStatus === 'approved');
+    console.log('📊 Wallet verified:', isWalletVerified);
+    
+    // Only show balance if wallet is verified
+    let walletBalance = 0;
+    if (isWalletVerified && wallet) {
+      walletBalance = wallet.remainingBalance || wallet.balance || 0;
+      console.log('📊 Verified wallet balance:', walletBalance);
+    } else {
+      console.log('📊 Wallet not verified or not found, balance = 0');
+    }
+
+    // 2. Get Active Bids - count from actual bid records on ACTIVE auctions
+    // First get all ACTIVE auctions where user has placed bids
+    const userBidAuctions = await Bid.find({ bidder: userId }).distinct('auction');
+    console.log('📊 User has bid on', userBidAuctions.length, 'unique auctions');
+    
+    // Find which of these auctions are still ACTIVE
+    const activeAuctionsWithUserBids = await Auction.find({
+      _id: { $in: userBidAuctions },
+      status: 'ACTIVE'
+    });
+    
+    // Count active bids (user's bids on active auctions)
+    const activeBidsCount = await Bid.countDocuments({
+      bidder: userId,
+      auction: { $in: activeAuctionsWithUserBids.map(a => a._id) }
+    });
+    console.log('📊 Active bids count:', activeBidsCount, 'on', activeAuctionsWithUserBids.length, 'active auctions');
 
     // 3. Get Items Won (auctions where user is the winner and status is ENDED)
     const itemsWon = await Auction.countDocuments({
       winner: userId,
       status: 'ENDED'
     });
+    console.log('📊 Items won:', itemsWon);
 
     // 4. Calculate Success Rate
     // Total participated auctions = all auctions where user has placed at least one bid
-    const allUserBids = await Bid.find({ bidder: userId }).distinct('auction');
-    const totalParticipatedAuctions = allUserBids.length;
-    
+    const totalParticipatedAuctions = userBidAuctions.length;
+    console.log('📊 Total participated auctions:', totalParticipatedAuctions);
+
     // Success rate = (items won / total participated) * 100
-    const successRate = totalParticipatedAuctions > 0 
+    const successRate = totalParticipatedAuctions > 0
       ? ((itemsWon / totalParticipatedAuctions) * 100).toFixed(1)
       : 0;
+    console.log('📊 Success rate:', successRate + '%');
+
+    console.log('📊 FINAL STATS:', {
+      walletBalance,
+      activeBidsCount,
+      itemsWon,
+      successRate: parseFloat(successRate),
+      totalParticipatedAuctions,
+      isWalletVerified
+    });
 
     // 5. Get additional stats for charts
     // Get bids grouped by day for the last 7 days
@@ -76,7 +108,8 @@ exports.getUserDashboardStats = async (req, res) => {
       itemsWon,
       successRate: parseFloat(successRate),
       totalParticipatedAuctions,
-      biddingActivity
+      biddingActivity,
+      isWalletVerified
     });
 
   } catch (error) {

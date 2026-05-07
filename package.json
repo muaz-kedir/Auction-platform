@@ -19,7 +19,13 @@
   },
   "homepage": "https://github.com/ethiopian-online-auction/online-auction-platform#readme",
   "dependencies": {
+    "@splinetool/runtime": "^1.12.92",
+    "@studio-freight/lenis": "^1.0.42",
+    "@types/canvas-confetti": "^1.9.0",
+    "anime": "^0.1.2",
+    "animejs": "^4.4.1",
     "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",

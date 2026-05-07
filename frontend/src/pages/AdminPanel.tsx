@@ -22,8 +22,11 @@ import {
   MoreVertical,
   Loader2,
   Shield,
-  Megaphone
+  Megaphone,
+  Lock,
+  Trophy
 } from "lucide-react";
+import { AdminEscrowManagement } from "../components/escrow";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,12 +96,22 @@ interface Withdrawal {
   createdAt: string;
 }
 
+interface Winner {
+  _id: string;
+  auction: { _id: string; title: string; images: string[] };
+  winner: { _id: string; name: string; email: string };
+  seller: { _id: string; name: string; email: string };
+  winningBid: number;
+  endedAt: string;
+}
+
 export function AdminPanel() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [winners, setWinners] = useState<Winner[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -123,6 +136,7 @@ export function AdminPanel() {
     fetchAuctions();
     fetchDisputes();
     fetchWithdrawals();
+    fetchWinners();
   }, []);
 
   const fetchStats = async () => {
@@ -186,6 +200,33 @@ export function AdminPanel() {
       setWithdrawals(data.withdrawals);
     } catch (error: any) {
       toast.error("Failed to load withdrawals");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWinners = async () => {
+    try {
+      setLoading(true);
+      const data = await api.admin.getAllAuctions({ status: "ENDED", limit: 50 });
+      const winnerData = data.auctions
+        ?.filter((auction: any) => auction.winner)
+        .map((auction: any) => ({
+          _id: auction._id,
+          auction: {
+            _id: auction._id,
+            title: auction.title,
+            images: auction.images || []
+          },
+          winner: auction.winner,
+          seller: auction.seller,
+          winningBid: auction.winningBid || auction.currentBid,
+          endedAt: auction.updatedAt
+        })) || [];
+      setWinners(winnerData);
+    } catch (error: any) {
+      toast.error("Failed to load winners");
       console.error(error);
     } finally {
       setLoading(false);
@@ -357,9 +398,14 @@ export function AdminPanel() {
 
       {/* Tabs */}
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="auctions">Auctions</TabsTrigger>
+          <TabsTrigger value="winners">🏆 Winners</TabsTrigger>
+          <TabsTrigger value="escrow">
+            <Lock className="w-3 h-3 mr-1" />
+            Escrow
+          </TabsTrigger>
           <TabsTrigger value="disputes">Disputes</TabsTrigger>
           <TabsTrigger value="withdrawals">Withdrawals</TabsTrigger>
         </TabsList>
@@ -531,6 +577,61 @@ export function AdminPanel() {
           </Card>
         </TabsContent>
 
+        {/* Winners Tab */}
+        <TabsContent value="winners" className="space-y-4">
+          <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+            <div className="p-6 border-b border-border/50 flex items-center justify-between">
+              <h2 className="text-xl font-bold">🏆 Auction Winners</h2>
+              <div className="text-sm text-muted-foreground">
+                {winners.length} completed auctions with winners
+              </div>
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Auction</TableHead>
+                    <TableHead>Winner</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Winning Bid</TableHead>
+                    <TableHead>Ended</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {winners.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        No completed auctions with winners yet
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    winners.map((winner) => (
+                      <TableRow key={winner._id}>
+                        <TableCell className="font-medium">{winner.auction.title}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-yellow-500" />
+                            {winner.winner.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>{winner.seller.name}</TableCell>
+                        <TableCell className="font-bold text-green-600">
+                          {formatCurrency(winner.winningBid)}
+                        </TableCell>
+                        <TableCell>{formatDate(winner.endedAt)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </Card>
+        </TabsContent>
+
         {/* Disputes Tab */}
         <TabsContent value="disputes" className="space-y-4">
           <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -593,6 +694,11 @@ export function AdminPanel() {
               </Table>
             )}
           </Card>
+        </TabsContent>
+
+        {/* Escrow Tab */}
+        <TabsContent value="escrow" className="space-y-4">
+          <AdminEscrowManagement />
         </TabsContent>
 
         {/* Withdrawals Tab */}

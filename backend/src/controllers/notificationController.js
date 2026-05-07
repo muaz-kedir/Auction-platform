@@ -254,6 +254,18 @@ exports.createAuctionCreatedNotification = async (auction, sellerId) => {
     await notification.save();
     console.log(`✓ Auction created notification created for: ${auction.title}`);
 
+    // Emit real-time notification
+    const { getSocket } = require("../utils/socket");
+    const io = getSocket();
+    if (io) {
+      io.emit("notificationUpdate", {
+        type: "auction_created",
+        auctionId: auction._id,
+        message: `New auction "${auction.title}" is now live!`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     return notification;
   } catch (error) {
     console.error("Error creating auction created notification:", error);
@@ -387,5 +399,424 @@ exports.createAdminBroadcast = async (title, message, adminId, priority = "norma
     return notification;
   } catch (error) {
     console.error("Error creating admin broadcast:", error);
+  }
+};
+
+/**
+ * Create auction winner announcement notification
+ * Broadcast to all users when an auction ends with a winner
+ */
+exports.createWinnerAnnouncementNotification = async (auction, winner) => {
+  try {
+    const notification = new Notification({
+      title: "🏆 Auction Winner Announced",
+      message: `${winner.name} won the auction "${auction.title}" with $${auction.currentBid.toLocaleString()}!`,
+      type: "auction_winner",
+      userId: null, // Broadcast to all users
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        winnerId: winner._id,
+        winnerName: winner.name,
+        winningBid: auction.currentBid,
+        auctionTitle: auction.title,
+        isPublicAnnouncement: true,
+      },
+    });
+
+    await notification.save();
+    console.log(`✓ Winner announcement notification created for: ${auction.title}`);
+
+    return notification;
+  } catch (error) {
+    console.error("Error creating winner announcement notification:", error);
+  }
+};
+
+/**
+ * Create personal winner notification
+ * Private notification for the winner only
+ */
+exports.createPersonalWinnerNotification = async (auction, winner) => {
+  try {
+    const notification = new Notification({
+      title: "🎉 Congratulations! You Won!",
+      message: `You won the auction "${auction.title}" with a bid of $${auction.currentBid.toLocaleString()}! Please complete your payment within 24 hours.`,
+      type: "winner_personal",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        winnerId: winner._id,
+        winningBid: auction.currentBid,
+        auctionTitle: auction.title,
+        isPersonalWinner: true,
+        paymentDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      },
+    });
+
+    await notification.save();
+    console.log(`✓ Personal winner notification created for: ${winner.name}`);
+
+    return notification;
+  } catch (error) {
+    console.error("Error creating personal winner notification:", error);
+  }
+};
+
+// ==================== ESCROW NOTIFICATIONS ====================
+
+/**
+ * Create escrow held notification
+ * Notifies winner and seller when funds are secured in escrow
+ */
+exports.createEscrowHeldNotification = async (auction, winner, amount) => {
+  try {
+    // Notify winner (buyer) - payment secured
+    const winnerNotification = new Notification({
+      title: "🔒 Payment Secured in Escrow",
+      message: `Your payment of $${amount.toLocaleString()} for "${auction.title}" has been secured in escrow. The seller will now deliver your item.`,
+      type: "payment",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "payment_secured",
+        amount: amount,
+        auctionTitle: auction.title,
+      },
+    });
+
+    await winnerNotification.save();
+
+    // Notify seller - funds secured, deliver item
+    const sellerNotification = new Notification({
+      title: "💰 Funds Secured - Deliver Item",
+      message: `Payment of $${amount.toLocaleString()} for your auction "${auction.title}" is now secured in escrow. Please deliver the item to the buyer.`,
+      type: "payment",
+      userId: auction.seller,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "payment_secured",
+        amount: amount,
+        auctionTitle: auction.title,
+      },
+    });
+
+    await sellerNotification.save();
+
+    // Emit real-time notification
+    const { getSocket } = require("../utils/socket");
+    const io = getSocket();
+    if (io) {
+      io.to(winner._id.toString()).emit("notificationUpdate", {
+        type: "escrow_held",
+        auctionId: auction._id,
+        message: "Your payment has been secured in escrow",
+        amount: amount,
+      });
+
+      io.to(auction.seller.toString()).emit("notificationUpdate", {
+        type: "escrow_held",
+        auctionId: auction._id,
+        message: "Funds secured in escrow - deliver item",
+        amount: amount,
+      });
+    }
+
+    console.log(`✓ Escrow held notifications sent for auction: ${auction.title}`);
+    return { winnerNotification, sellerNotification };
+  } catch (error) {
+    console.error("Error creating escrow held notification:", error);
+  }
+};
+
+/**
+ * Create escrow released notification
+ * Notifies winner and seller when funds are released to seller
+ */
+exports.createEscrowReleasedNotification = async (auction, winner, seller, amount) => {
+  try {
+    // Notify winner (buyer) - transaction complete
+    const winnerNotification = new Notification({
+      title: "✅ Transaction Complete",
+      message: `The escrow for "${auction.title}" has been released. Thank you for your purchase!`,
+      type: "payment",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "normal",
+      metadata: {
+        escrowStatus: "released",
+        amount: amount,
+        auctionTitle: auction.title,
+      },
+    });
+
+    await winnerNotification.save();
+
+    // Notify seller - payment received
+    const sellerNotification = new Notification({
+      title: "🎉 Payment Released!",
+      message: `You have received $${amount.toLocaleString()} for your auction "${auction.title}". The funds have been added to your wallet.`,
+      type: "payment",
+      userId: seller._id || auction.seller,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "released",
+        amount: amount,
+        auctionTitle: auction.title,
+      },
+    });
+
+    await sellerNotification.save();
+
+    // Emit real-time notification
+    const { getSocket } = require("../utils/socket");
+    const io = getSocket();
+    if (io) {
+      io.to(winner._id.toString()).emit("notificationUpdate", {
+        type: "escrow_released",
+        auctionId: auction._id,
+        message: "Escrow released - transaction complete",
+        amount: amount,
+      });
+
+      io.to((seller._id || auction.seller).toString()).emit("notificationUpdate", {
+        type: "escrow_released",
+        auctionId: auction._id,
+        message: `Payment of $${amount.toLocaleString()} received!`,
+        amount: amount,
+      });
+    }
+
+    console.log(`✓ Escrow released notifications sent for auction: ${auction.title}`);
+    return { winnerNotification, sellerNotification };
+  } catch (error) {
+    console.error("Error creating escrow released notification:", error);
+  }
+};
+
+/**
+ * Create escrow refunded notification
+ * Notifies winner and seller when funds are refunded
+ */
+exports.createEscrowRefundedNotification = async (auction, winner, seller, amount, reason) => {
+  try {
+    // Notify winner (buyer) - refund processed
+    const winnerNotification = new Notification({
+      title: "💸 Refund Processed",
+      message: `You have been refunded $${amount.toLocaleString()} for "${auction.title}"${reason ? `. Reason: ${reason}` : ""}. The funds have been returned to your wallet.`,
+      type: "payment",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "refunded",
+        amount: amount,
+        auctionTitle: auction.title,
+        refundReason: reason,
+      },
+    });
+
+    await winnerNotification.save();
+
+    // Notify seller - refund issued
+    const sellerNotification = new Notification({
+      title: "⚠️ Payment Refunded",
+      message: `The payment for your auction "${auction.title}" has been refunded to the buyer${reason ? `: ${reason}` : ""}.`,
+      type: "payment",
+      userId: seller._id || auction.seller,
+      auctionId: auction._id,
+      priority: "urgent",
+      metadata: {
+        escrowStatus: "refunded",
+        amount: amount,
+        auctionTitle: auction.title,
+        refundReason: reason,
+      },
+    });
+
+    await sellerNotification.save();
+
+    // Emit real-time notification
+    const { getSocket } = require("../utils/socket");
+    const io = getSocket();
+    if (io) {
+      io.to(winner._id.toString()).emit("notificationUpdate", {
+        type: "escrow_refunded",
+        auctionId: auction._id,
+        message: `Refund of $${amount.toLocaleString()} processed`,
+        amount: amount,
+        reason: reason,
+      });
+
+      io.to((seller._id || auction.seller).toString()).emit("notificationUpdate", {
+        type: "escrow_refunded",
+        auctionId: auction._id,
+        message: "Payment refunded to buyer",
+        amount: amount,
+        reason: reason,
+      });
+    }
+
+    console.log(`✓ Escrow refund notifications sent for auction: ${auction.title}`);
+    return { winnerNotification, sellerNotification };
+  } catch (error) {
+    console.error("Error creating escrow refund notification:", error);
+  }
+};
+
+/**
+ * Create delivery notification
+ * Notifies winner when seller marks item as delivered
+ */
+exports.createDeliveryNotification = async (auction, winner, seller) => {
+  try {
+    // Notify winner (buyer) - item delivered
+    const winnerNotification = new Notification({
+      title: "📦 Item Delivered",
+      message: `The seller has marked your item from "${auction.title}" as delivered. Please confirm receipt.`,
+      type: "system",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "delivered",
+        auctionTitle: auction.title,
+        sellerName: seller?.name || "Seller",
+      },
+    });
+
+    await winnerNotification.save();
+
+    // Emit real-time notification
+    const { getSocket } = require("../utils/socket");
+    const io = getSocket();
+    if (io) {
+      io.to(winner._id.toString()).emit("notificationUpdate", {
+        type: "item_delivered",
+        auctionId: auction._id,
+        message: "Item marked as delivered - please confirm",
+      });
+    }
+
+    console.log(`✓ Delivery notification sent to winner for auction: ${auction.title}`);
+    return winnerNotification;
+  } catch (error) {
+    console.error("Error creating delivery notification:", error);
+  }
+};
+
+/**
+ * Create dispute opened notification
+ * Notifies both parties when a dispute is opened
+ */
+exports.createDisputeOpenedNotification = async (auction, winner, seller, reason, isBuyer) => {
+  try {
+    const openerRole = isBuyer ? "buyer" : "seller";
+    const otherParty = isBuyer ? seller : winner;
+    
+    // Notify the other party
+    const otherPartyNotification = new Notification({
+      title: "⚠️ Dispute Opened",
+      message: `A dispute has been opened by the ${openerRole} for "${auction.title}"${reason ? `: ${reason}` : ""}. An admin will review the case.`,
+      type: "system",
+      userId: otherParty._id,
+      auctionId: auction._id,
+      priority: "urgent",
+      metadata: {
+        escrowStatus: "disputed",
+        auctionTitle: auction.title,
+        disputeReason: reason,
+        openedBy: openerRole,
+      },
+    });
+
+    await otherPartyNotification.save();
+
+    // Notify all admins
+    const User = require("../models/User");
+    const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
+    
+    for (const admin of admins) {
+      const adminNotification = new Notification({
+        title: "🚨 New Dispute Requires Attention",
+        message: `A dispute has been opened for auction "${auction.title}". Reason: ${reason || "No reason provided"}`,
+        type: "admin",
+        userId: admin._id,
+        auctionId: auction._id,
+        priority: "urgent",
+        metadata: {
+          escrowStatus: "disputed",
+          auctionTitle: auction.title,
+          disputeReason: reason,
+          openedBy: openerRole,
+          winnerId: winner._id,
+          sellerId: seller._id || auction.seller,
+        },
+      });
+
+      await adminNotification.save();
+    }
+
+    console.log(`✓ Dispute notifications sent for auction: ${auction.title}`);
+    return { otherPartyNotification, adminNotifications: admins.length };
+  } catch (error) {
+    console.error("Error creating dispute notification:", error);
+  }
+};
+
+/**
+ * Create payment failed notification
+ * Notifies admins and user when escrow hold fails
+ */
+exports.createPaymentFailedNotification = async (auction, winner, error) => {
+  try {
+    // Notify winner
+    const winnerNotification = new Notification({
+      title: "❌ Payment Failed",
+      message: `We couldn't secure payment for "${auction.title}". Please ensure you have sufficient funds in your wallet.`,
+      type: "payment",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "urgent",
+      metadata: {
+        escrowStatus: "payment_failed",
+        auctionTitle: auction.title,
+        errorMessage: error,
+      },
+    });
+
+    await winnerNotification.save();
+
+    // Notify admins
+    const User = require("../models/User");
+    const admins = await User.find({ role: { $in: ["admin", "super_admin"] } });
+    
+    for (const admin of admins) {
+      const adminNotification = new Notification({
+        title: "⚠️ Escrow Payment Failed",
+        message: `Payment failed for auction "${auction.title}". Winner: ${winner.name}. Error: ${error}`,
+        type: "admin",
+        userId: admin._id,
+        auctionId: auction._id,
+        priority: "urgent",
+        metadata: {
+          escrowStatus: "payment_failed",
+          auctionTitle: auction.title,
+          winnerId: winner._id,
+          errorMessage: error,
+        },
+      });
+
+      await adminNotification.save();
+    }
+
+    console.log(`✓ Payment failed notifications sent for auction: ${auction.title}`);
+    return { winnerNotification, adminNotifications: admins.length };
+  } catch (error) {
+    console.error("Error creating payment failed notification:", error);
   }
 };

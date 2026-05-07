@@ -168,8 +168,8 @@ exports.getAuctions = async (req, res) => {
 
     // Allow sellers to see their own auctions, super_admin to see all
     if (!isSuperAdmin && !isOwnAuctions && !isSeller && !includeAll) {
-      // Public users only see ACTIVE auctions
-      filter.status = "ACTIVE";
+      // Public users see ACTIVE and ENDED auctions
+      filter.status = { $in: ["ACTIVE", "ENDED"] };
     }
 
     // If specific status requested
@@ -466,6 +466,58 @@ exports.deleteAuction = async (req, res) => {
   } catch (error) {
     console.error("=== ERROR DELETING AUCTION ===");
     console.error("Error:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Get auction winner
+ * Public endpoint - anyone can see who won an auction
+ */
+exports.getAuctionWinner = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const auction = await Auction.findById(id)
+      .populate("winner", "_id name email profileImage")
+      .populate("seller", "_id name");
+
+    if (!auction) {
+      return res.status(404).json({ message: "Auction not found" });
+    }
+
+    // Only show winner if auction has ended
+    if (auction.status !== "ENDED") {
+      return res.status(400).json({ 
+        message: "Auction has not ended yet",
+        status: auction.status 
+      });
+    }
+
+    // Return winner info
+    res.json({
+      hasWinner: !!auction.winner,
+      winner: auction.winner ? {
+        _id: auction.winner._id,
+        name: auction.winner.name,
+        email: auction.winner.email,
+        profileImage: auction.winner.profileImage,
+      } : null,
+      winningBid: auction.winningBid || auction.currentBid,
+      auction: {
+        _id: auction._id,
+        title: auction.title,
+        status: auction.status,
+        endedAt: auction.updatedAt,
+      },
+      seller: {
+        _id: auction.seller._id,
+        name: auction.seller.name,
+      }
+    });
+
+  } catch (error) {
+    console.error("Error getting auction winner:", error);
     res.status(500).json({ error: error.message });
   }
 };

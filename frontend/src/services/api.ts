@@ -151,6 +151,10 @@ export const api = {
       apiRequest(`/auctions/${id}`, {
         method: 'DELETE',
       }),
+
+    // Get auction winner (public - anyone can see who won)
+    getWinner: (id: string) =>
+      apiRequest(`/auctions/${id}/winner`, {}, true), // Public endpoint, no auth needed
   },
 
   // Bidding
@@ -160,17 +164,35 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ amount }),
       }),
+
+    getAuctionBids: (auctionId: string) =>
+      apiRequest(`/bids/auction/${auctionId}`, {}, true), // Public, no auth needed
   },
 
-  // Wallet
+  // Wallet (Multi-Wallet System)
   wallet: {
     getBalance: () => apiRequest('/wallet'),
     getVerificationStatus: () => apiRequest('/wallet/verification/my'),
-    
-    deposit: (amount: number) =>
+
+    // Multi-wallet methods
+    getSummary: () => apiRequest('/wallet/summary'),
+    getTransactions: (params?: { page?: number; limit?: number; type?: string; walletType?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/wallet/transactions${queryString}`);
+    },
+
+    // Deposit with wallet selection
+    deposit: (amount: number, walletType?: 'primary' | 'secondary', paymentMethod?: string) =>
       apiRequest('/wallet/deposit', {
         method: 'POST',
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, walletType, paymentMethod }),
+      }),
+
+    // Transfer between wallets
+    transfer: (amount: number, fromWallet: 'primary' | 'secondary', toWallet: 'primary' | 'secondary') =>
+      apiRequest('/wallet/transfer', {
+        method: 'POST',
+        body: JSON.stringify({ amount, fromWallet, toWallet }),
       }),
 
     submitVerification: (formData: FormData) => {
@@ -185,7 +207,7 @@ export const api = {
     },
 
     // Wallet Funding System
-    submitFundingRequest: (data: { fullName: string; phone: string; email: string; location: string; walletAmount: number }) =>
+    submitFundingRequest: (data: { fullName: string; phone: string; email: string; location: string; walletAmount: number; targetWallet?: string }) =>
       apiRequest('/wallet/funding/submit', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -195,10 +217,10 @@ export const api = {
 
     canBid: () => apiRequest('/wallet/can-bid'),
 
-    placeBidWithWallet: (auctionId: string, bidAmount: number) =>
+    placeBidWithWallet: (auctionId: string, bidAmount: number, walletType?: 'primary' | 'secondary') =>
       apiRequest('/wallet/bid', {
         method: 'POST',
-        body: JSON.stringify({ auctionId, bidAmount }),
+        body: JSON.stringify({ auctionId, bidAmount, walletType }),
       }),
 
     refundBid: (amount: number) =>
@@ -206,6 +228,30 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ amount }),
       }),
+  },
+
+  // Payments (Chapa Integration)
+  payments: {
+    // Initialize payment (deposit to wallet)
+    initialize: (data: { amount: number; phone?: string; returnUrl?: string }) =>
+      apiRequest('/payments/initialize', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    
+    // Verify payment after redirect
+    verify: (tx_ref: string) =>
+      apiRequest(`/payments/verify/${tx_ref}`),
+    
+    // Get payment history
+    getHistory: (params?: { status?: string; page?: number; limit?: number }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/payments/history${queryString}`);
+    },
+    
+    // Get single payment details
+    getById: (id: string) =>
+      apiRequest(`/payments/${id}`),
   },
 
   // Withdrawals
@@ -224,17 +270,57 @@ export const api = {
 
   // Escrow
   escrow: {
-    ship: (orderId: string, trackingNumber: string) =>
-      apiRequest(`/escrow/ship/${orderId}`, {
+    // Get escrow status for an auction
+    getStatus: (auctionId: string) => apiRequest(`/escrow/status/${auctionId}`),
+    
+    // Get user's escrow transactions
+    getMyTransactions: (params?: { page?: number; limit?: number }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/escrow/my-transactions${queryString}`);
+    },
+
+    // Seller actions
+    markDelivered: (auctionId: string) =>
+      apiRequest(`/escrow/deliver/${auctionId}`, {
         method: 'POST',
-        body: JSON.stringify({ trackingNumber }),
       }),
     
-    confirm: (orderId: string) =>
-      apiRequest(`/escrow/confirm/${orderId}`, {
+    ship: (auctionId: string, trackingNumber?: string, carrier?: string) =>
+      apiRequest(`/escrow/ship/${auctionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ trackingNumber, carrier }),
+      }),
+    
+    // Buyer actions
+    confirm: (auctionId: string) =>
+      apiRequest(`/escrow/confirm/${auctionId}`, {
         method: 'POST',
       }),
     
+    openDispute: (auctionId: string, reason: string) =>
+      apiRequest(`/escrow/dispute/${auctionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    
+    // Admin actions
+    holdFunds: (auctionId: string) =>
+      apiRequest(`/escrow/hold/${auctionId}`, {
+        method: 'POST',
+      }),
+    
+    releaseFunds: (auctionId: string) =>
+      apiRequest(`/escrow/release/${auctionId}`, {
+        method: 'POST',
+      }),
+    
+    refundFunds: (auctionId: string, reason?: string) =>
+      apiRequest(`/escrow/refund/${auctionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    
+    // Legacy refund
     refund: (orderId: string) =>
       apiRequest(`/escrow/refund/${orderId}`, {
         method: 'POST',
@@ -436,6 +522,17 @@ export const api = {
       apiRequest(`/admin/categories/${id}`, {
         method: 'DELETE',
       }),
+    
+    // Escrow Management (Admin only)
+    getEscrowTransactions: (params?: { status?: string; auctionId?: string; userId?: string; page?: number; limit?: number }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/escrow/transactions${queryString}`);
+    },
+    
+    getEscrowAuctions: (params?: { status?: string; page?: number; limit?: number }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/escrow/auctions${queryString}`);
+    },
   },
 
   // Announcements

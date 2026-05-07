@@ -9,6 +9,7 @@ import { AuctionListing } from "./pages/AuctionListing";
 import { AuctionDetail } from "./pages/AuctionDetail";
 import { MyBids } from "./pages/MyBids";
 import { Wallet } from "./pages/Wallet";
+import { WalletDashboard } from "./pages/WalletDashboard";
 import { Notifications } from "./pages/Notifications";
 import { Settings } from "./pages/Settings";
 import { SellerDashboard } from "./pages/SellerDashboard";
@@ -20,6 +21,7 @@ import { AnnouncementsManagement } from "./pages/AnnouncementsManagement";
 import { AuctionApprovalManagement } from "./pages/AuctionApprovalManagement";
 import { WalletVerificationManagement } from "./pages/WalletVerificationManagement";
 import { NotFound } from "./pages/NotFound";
+import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -65,7 +67,7 @@ export const router = createBrowserRouter([
       { path: "auctions", Component: AuctionListing },
       { path: "auctions/:id", Component: AuctionDetail },
       { path: "my-bids", Component: MyBids },
-      { path: "wallet", Component: Wallet },
+      { path: "wallet", Component: WalletDashboard },
       { path: "notifications", Component: Notifications },
       { path: "settings", Component: Settings },
       { path: "seller", Component: SellerDashboard },
@@ -105,6 +107,10 @@ export const router = createBrowserRouter([
         )
       },
     ],
+  },
+  {
+    path: "/payment/success",
+    Component: PaymentSuccess,
   },
   {
     path: "*",

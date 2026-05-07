@@ -1,6 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Gavel, TrendingUp, Trophy, Wallet, Clock } from "lucide-react";
 import { Card } from "../ui/card";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+
+// Configure dayjs relative time plugin
+dayjs.extend(relativeTime);
 
 interface Activity {
   id: string;
@@ -49,17 +54,20 @@ export function RecentActivity({ activities }: RecentActivityProps) {
   };
 
   const formatTime = (timeString: string) => {
-    const date = new Date(timeString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const date = dayjs(timeString);
+    const now = dayjs();
+    const diffSeconds = now.diff(date, 'second');
+    const diffMins = now.diff(date, 'minute');
+    const diffHours = now.diff(date, 'hour');
+    const diffDays = now.diff(date, 'day');
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? "s" : ""} ago`;
+    // For recent times (under 60 seconds), show seconds
+    if (diffSeconds < 5) return "just now";
+    if (diffSeconds < 60) return `${diffSeconds} second${diffSeconds > 1 ? "s" : ""} ago`;
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+    return date.format("MMM D, YYYY");
   };
 
   return (
@@ -127,16 +135,9 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                   {getActivityIcon(activity.type)}
                 </motion.div>
                 <div className="flex-1 min-w-0">
-                  {activity.isOwn ? (
-                    <p className="text-sm font-medium text-primary truncate">
-                      You placed a bid
-                    </p>
-                  ) : (
-                    <p className="text-sm truncate">
-                      <span className="font-medium">{activity.bidderName || 'Someone'}</span>
-                      <span className="text-muted-foreground"> placed a bid</span>
-                    </p>
-                  )}
+                  <p className={`text-sm truncate ${activity.isOwn ? 'font-medium text-primary' : ''}`}>
+                    {activity.message}
+                  </p>
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-xs text-muted-foreground">
                       {formatTime(activity.time)}
