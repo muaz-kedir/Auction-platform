@@ -1,7 +1,7 @@
 {
   "common": {
     "login": "Login",
-    "register": "Sign Up",
+    "register": "Register",
     "get_started": "Get Started",
     "logout": "Logout",
     "dashboard": "Dashboard",

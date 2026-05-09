@@ -111,8 +111,7 @@ export function Dashboard() {
         itemsWon: stats.itemsWon ?? 0,
         successRate: stats.successRate ?? 0,
         isWalletVerified: stats.isWalletVerified,
-        totalParticipatedAuctions: stats.totalParticipatedAuctions ?? 0,
-        isWalletVerified: stats.isWalletVerified
+        totalParticipatedAuctions: stats.totalParticipatedAuctions ?? 0
       });
 
       setStats({

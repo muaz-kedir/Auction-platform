@@ -199,17 +199,14 @@ export function LandingPage() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm hover:text-primary transition-colors">
-                {t('common.home')}
-              </Link>
+              <a href="#features" className="text-sm hover:text-primary transition-colors">
+                {t('landing.features_badge')}
+              </a>
+              <a href="#how-it-works" className="text-sm hover:text-primary transition-colors">
+                {t('common.how_it_works')}
+              </a>
               <Link to="/dashboard/auctions" className="text-sm hover:text-primary transition-colors">
                 {t('common.auctions')}
-              </Link>
-              <Link to="/dashboard/auctions" className="text-sm hover:text-primary transition-colors">
-                {t('common.categories')}
-              </Link>
-              <Link to="#how-it-works" className="text-sm hover:text-primary transition-colors">
-                {t('common.how_it_works')}
               </Link>
             </div>
 
@@ -308,7 +305,7 @@ export function LandingPage() {
                 <Button variant="ghost">{t('common.login')}</Button>
               </Link>
               <Link to="/register">
-                <Button>{t('common.get_started')}</Button>
+                <Button>{t('common.register')}</Button>
               </Link>
             </div>
           </div>
@@ -460,7 +457,7 @@ export function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20">
+      <section id="features" className="py-20">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">

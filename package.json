@@ -4,7 +4,9 @@
   "description": "Secure Online Auction Platform with AI, Blockchain &amp; Ethiopian Languages",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
   },
   "repository": {
     "type": "git",
