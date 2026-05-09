@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-// Get socket URL from environment or use deployed backend
+// Get socket URL from environment or use local backend
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 
                    import.meta.env.VITE_API_URL?.replace('/api', '') || 
-                   'https://auction-platform-jl29.onrender.com';
+                   'http://localhost:5000';
 
 // Singleton socket instance - shared across all components
 let socketInstance: Socket | null = null;

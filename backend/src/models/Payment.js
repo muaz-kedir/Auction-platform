@@ -77,7 +77,7 @@ const paymentSchema = new mongoose.Schema(
     },
     // Failure tracking
     failureReason: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       default: null,
     },
     // IP and user agent for security
@@ -131,7 +131,13 @@ paymentSchema.methods.markSuccess = async function (verificationData, session = 
 // Instance method to mark as failed
 paymentSchema.methods.markFailed = async function (reason, session = null) {
   this.status = "failed";
-  this.failureReason = reason;
+  
+  // If reason is an object (common with Chapa validation errors), stringify it
+  if (typeof reason === "object") {
+    this.failureReason = JSON.stringify(reason);
+  } else {
+    this.failureReason = reason;
+  }
   
   const options = session ? { session } : {};
   return this.save(options);

@@ -201,6 +201,7 @@ export const api = {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - let browser set it with boundary
         },
         body: formData,
       }).then(handleResponse);

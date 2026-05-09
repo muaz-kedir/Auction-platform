@@ -76,19 +76,19 @@ exports.initializePayment = async (req, res) => {
         amount: amount.toString(),
         currency: "ETB",
         email: user.email,
-        first_name: user.name.split(" ")[0] || user.name,
-        last_name: user.name.split(" ").slice(1).join(" ") || "",
+        first_name: user.name.split(" ")[0] || user.name || "Customer",
+        last_name: user.name.split(" ").slice(1).join(" ") || "User",
         tx_ref,
         callback_url,
         return_url,
         ...(phone && { phone_number: phone }),
         customization: {
-          title: "Auction Platform Wallet Deposit",
-          description: `Deposit ${amount} ETB to your wallet`,
-          logo: process.env.LOGO_URL || "",
+          title: "Deposit",
+          description: "Wallet Deposit",
         },
       };
       
+      console.log("🔄 Chapa Request Payload:", JSON.stringify(chapaPayload, null, 2));
       console.log("🔄 Initializing Chapa payment:", { tx_ref, amount, email: user.email });
       
       const chapaResponse = await fetch(`${CHAPA_API_URL}/transaction/initialize`, {
@@ -125,9 +125,21 @@ exports.initializePayment = async (req, res) => {
     });
     
   } catch (error) {
-    console.error("❌ Initialize payment error:", error);
+    console.error("❌ [V2] Initialize payment error:", error);
+    
+    // Detailed logging of the error object
+    if (error.name === 'ValidationError') {
+      console.error("❌ Mongoose Validation Error Details:", JSON.stringify(error.errors, null, 2));
+    }
+
+    const errorMessage = typeof error.message === 'object' 
+      ? JSON.stringify(error.message) 
+      : error.message;
+
     res.status(500).json({ 
-      message: error.message || "Failed to initialize payment" 
+      message: errorMessage || "Failed to initialize payment",
+      debug_version: "v2-debug",
+      error_name: error.name
     });
   } finally {
     session.endSession();
