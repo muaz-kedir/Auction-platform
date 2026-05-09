@@ -12,8 +12,10 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 import { resolvePostAuthRedirectWithQuery } from "../utils/authRedirect";
+import { useTranslation } from "react-i18next";
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState("");
@@ -116,8 +118,8 @@ export function RegisterPage() {
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">Create Account</h1>
-            <p className="text-muted-foreground">Join thousands of happy bidders</p>
+            <h1 className="text-2xl font-bold mb-2">{t('auth.create_account')}</h1>
+            <p className="text-muted-foreground">{t('auth.join_desc')}</p>
           </div>
 
           {/* Social Signup */}
@@ -151,7 +153,7 @@ export function RegisterPage() {
           {/* Register Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">{t('auth.full_name')}</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -168,7 +170,7 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -185,7 +187,7 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -213,7 +215,7 @@ export function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('auth.confirm_password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -243,26 +245,26 @@ export function RegisterPage() {
             <div className="flex items-start gap-2">
               <Checkbox id="terms" className="mt-1" required />
               <label htmlFor="terms" className="text-sm cursor-pointer text-muted-foreground">
-                I agree to the{" "}
-                <a href="#" className="text-primary hover:underline">Terms of Service</a>
-                {" "}and{" "}
-                <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                {t('auth.agree_to')}{" "}
+                <a href="#" className="text-primary hover:underline">{t('auth.terms')}</a>
+                {" "}{t('auth.and')}{" "}
+                <a href="#" className="text-primary hover:underline">{t('auth.privacy')}</a>
               </label>
             </div>
 
             <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
-              {isLoading ? "Creating Account..." : "Create Account"}
+              {isLoading ? t('auth.creating_account') : t('auth.create_account')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Already have an account?{" "}
+            {t('auth.already_have_account')}{" "}
             <Link 
               to={`/login${authSwitchSearch}`} 
               state={{ from: location.state?.from }}
               className="text-primary hover:underline font-medium"
             >
-              Sign in
+              {t('common.login')}
             </Link>
           </p>
         </Card>

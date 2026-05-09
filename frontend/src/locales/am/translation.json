@@ -1,0 +1,156 @@
+{
+  "common": {
+    "login": "ይግቡ",
+    "register": "ይመዝገቡ",
+    "get_started": "ይጀምሩ",
+    "logout": "ይውጡ",
+    "dashboard": "ዳሽቦርድ",
+    "settings": "ቅንብሮች",
+    "home": "መነሻ",
+    "auctions": "ጨረታዎች",
+    "categories": "ምድቦች",
+    "how_it_works": "እንዴት እንደሚሰራ",
+    "search": "ይፈልጉ...",
+    "profile": "ፕሮፋይል",
+    "all": "ሁሉንም",
+    "my_account": "የእኔ መለያ",
+    "notifications": "ማሳወቂያዎች",
+    "updating": "በማዘመን ላይ...",
+    "view_all": "ሁሉንም ይመልከቱ",
+    "categories": {
+      "electronics": "ኤሌክትሮኒክስ",
+      "watches": "ሰዓቶች",
+      "art": "ስነ-ጥበብ",
+      "vehicles": "ተሽከርካሪዎች",
+      "jewelry": "ጌጣጌጥ",
+      "collectibles": "የሚሰበሰቡ እቃዎች"
+    }
+  },
+  "landing": {
+    "hero_badge": "በAI የታገዘ የጨረታ መድረክ",
+    "hero_title_1": "በብልሃት ይጫረቱ።",
+    "hero_title_2": "ትልቅ ያሸንፉ።",
+    "hero_subtitle": "በAI ምክሮች፣ በእውነተኛ ጊዜ ጨረታ እና በወታደራዊ ደረጃ የገንዘብ ጥበቃ የመስመር ላይ ጨረታዎችን የወደፊት ሁኔታ ይለማመዱ።",
+    "start_bidding": "መጫረት ይጀምሩ",
+    "explore_auctions": "ጨረታዎችን ያስሱ",
+    "stats": {
+      "active_users": "ንቁ ተጠቃሚዎች",
+      "items_sold": "የተሸጡ እቃዎች",
+      "success_rate": "የስኬት መጠን"
+    },
+    "featured_title": "ተለይተው የቀረቡ ጨረታዎች",
+    "featured_subtitle": "በቅርቡ የሚያልቁ ተወዳጅ እቃዎችን ያግኙ",
+    "categories_title": "በምድብ ያስሱ",
+    "categories_subtitle": "የሚፈልጉትን በትክክል ያግኙ",
+    "how_works_title": "እንዴት እንደሚሰራ",
+    "how_works_subtitle": "በሶስት ቀላል ደረጃዎች መጫረት ይጀምሩ",
+    "steps": {
+      "step_1_title": "መለያ ይፍጠሩ",
+      "step_1_desc": "በሰከንዶች ውስጥ ይመዝገቡ እና ማንነትዎን ያረጋግጡ",
+      "step_2_title": "ያስሱ እና ይጫረቱ",
+      "step_2_desc": "ጨረታዎችን ያስሱ እና በልበ ሙሉነት ይጫረቱ",
+      "step_3_title": "ያሸንፉ እና ደህንነትዎን ይጠብቁ",
+      "step_3_desc": "በAI የማጭበርበር ፍለጋ እና በገንዘብ ጥበቃ እቃዎችን ያሸንፉ"
+    },
+    "features_badge": "የመድረክ ባህሪያት",
+    "features_title": "ለእምነት፣ ለፍጥነት እና ለደህንነት የተገነባ",
+    "features_subtitle": "መድረካችን ዘመናዊ ቴክኖሎጂን ለተጠቃሚ ምቹ ከሆኑ ዲዛይኖች ጋር በማጣመር ምርጥ የጨረታ ልምድን ያቀርባል።",
+    "features": {
+      "ai": {
+        "title": "በAI የታገዙ ምክሮች",
+        "desc": "በፍላጎቶችዎ ላይ በመመስረት ግላዊ የጨረታ ጥቆማዎችን ያግኙ"
+      },
+      "escrow": {
+        "title": "የገንዘብ ጥበቃ (Escrow)",
+        "desc": "እቃዎን ተረክበው እስኪያረጋግጡ ድረስ ገንዘብዎ ደህንነቱ የተጠበቀ ነው"
+      },
+      "realtime": {
+        "title": "የእውነተኛ ጊዜ ጨረታ",
+        "desc": "ያለ ምንም መዘግየት ፈጣን መረጃዎችን ያግኙ"
+      },
+      "verified": {
+        "title": "የተረጋገጡ ሻጮች",
+        "desc": "ሻጮች ሁሉ ትክክለኛነታቸውን ለማረጋገጥ ምርመራ ይደረግባቸዋል"
+      }
+    },
+    "testimonials_title": "ተጠቃሚዎቻችን ምን ይላሉ",
+    "testimonials_subtitle": "በሺዎች የሚቆጠሩ ረክተው ከሚገበያዩ ሻጮች እና ገዢዎች ጋር ይቀላቀሉ",
+    "cta_title": "መጫረት ለመጀመር ዝግጁ ነዎት?",
+    "cta_subtitle": "BidSmartን ለጨረታ ፍላጎቶቻቸው የሚጠቀሙ በሺዎች የሚቆጠሩ ተጠቃሚዎችን ይቀላቀሉ",
+    "footer_desc": "በAI እና በገንዘብ ጥበቃ የታገዘ እጅግ የታመነ የመስመር ላይ የጨረታ መድረክ።",
+    "footer_platform": "መድረክ",
+    "footer_support": "ድጋፍ",
+    "footer_legal": "ህጋዊ"
+  },
+  "auth": {
+    "welcome_back": "እንኳን ደህና መጡ",
+    "sign_in_desc": "ወደ መለያዎ ለመግባት መረጃዎን ያስገቡ",
+    "email": "ኢሜይል",
+    "password": "የይለፍ ቃል",
+    "forgot_password": "የይለፍ ቃል ረስተዋል?",
+    "dont_have_account": "መለያ የለዎትም?",
+    "create_account": "መለያ ይፍጠሩ",
+    "full_name": "ሙሉ ስም",
+    "already_have_account": "ቀድሞውኑ መለያ አለዎት?",
+    "remember_me": "አስታውሰኝ",
+    "signing_in": "በመግባት ላይ...",
+    "join_desc": "በሺዎች የሚቆጠሩ ደስተኛ ተጫራቾችን ይቀላቀሉ",
+    "confirm_password": "የይለፍ ቃል ያረጋግጡ",
+    "agree_to": "እስማማለሁ",
+    "terms": "የአገልግሎት ውል",
+    "and": "እና",
+    "privacy": "የግላዊነት መመሪያ",
+    "creating_account": "መለያ በመፍጠር ላይ..."
+  },
+  "dashboard": {
+    "dashboard": "ዳሽቦርድ",
+    "auctions": "ጨረታዎች",
+    "welcome_desc": "እንኳን በደህና መጡ! ጨረታዎችዎ ምን ደረጃ ላይ እንዳሉ ይመልከቱ።",
+    "wallet_balance": "የዋሌት ቀሪ ሂሳብ",
+    "active_bids": "ንቁ ጨረታዎች",
+    "items_won": "ያሸነፏቸው እቃዎች",
+    "success_rate": "የድል መጠን",
+    "track_ongoing": "ወቅታዊ ጨረታዎችዎን ይከታተሉ",
+    "no_active_bids": "እስካሁን ምንም ንቁ ጨረታ የለም",
+    "bidding_activity": "የጨረታ እንቅስቃሴ",
+    "activity_desc": "የዚህ ሳምንት የጨረታ እንቅስቃሴዎ",
+    "quick_actions": "ፈጣን እርምጃዎች",
+    "recent_activity": "የቅርብ ጊዜ እንቅስቃሴዎች",
+    "my_bids": "የእኔ ጨረታዎች",
+    "wallet": "ዋሌት",
+    "verifications": "ማረጋገጫዎች",
+    "seller": "ሻጭ",
+    "admin": "አስተዳዳሪ",
+    "settings": "ቅንብሮች"
+  },
+  "wallet": {
+    "verification": "የዋሌት ማረጋገጫ",
+    "verify_desc": "ጨረታዎችን ለመሳተፍ የባንክ መግለጫዎን ያረጋግጡ።",
+    "verification_status": " የማረጋገጫ ሁኔታ",
+    "submit_verification": "ለማረጋገጫ ያስገቡ",
+    "funding_management": "የዋሌት ፈንድ አስተዳደር",
+    "review_requests": "የገዢዎችን የፈንድ ጥያቄዎች ይገምግሙ እና ያጽድቁ።",
+    "buyer": "ገዢ",
+    "request_details": "የጥያቄ ዝርዝሮች",
+    "requested_amount": "የተጠየቀ መጠን",
+    "approvals": "ማጽደቆች (Approvals)"
+  },
+  "notifications": {
+    "title": "ማስታወቂያዎች",
+    "no_notifications": "እስካሁን ምንም ማስታወቂያ የለም",
+    "view_all_announcements": "ሁሉንም ማስታወቂያዎች ይመልከቱ",
+    "stay_updated": "ከጨረታ እንቅስቃሴዎ ጋር ይዘመኑ",
+    "unread": "ያልተነበበ",
+    "total": "ጠቅላላ",
+    "urgent": "አስቸኳይ"
+  },
+  "settings": {
+    "manage_desc": "የመለያ ቅንብሮችዎን እና ምርጫዎችዎን ያስተዳድሩ",
+    "profile_image": "የፕሮፋይል ምስል",
+    "profile_info": "የፕሮፋይል መረጃ",
+    "update_profile": "ፕሮፋይል አዘምን",
+    "change_password": "የይለፍ ቃል ቀይር",
+    "current_password": "የወቅቱ የይለፍ ቃል",
+    "new_password": "አዲስ የይለፍ ቃል"
+  }
+}

@@ -7,6 +7,7 @@ import { AlertCircle, CheckCircle2, Gavel, Trophy, Wallet, TrendingUp, Bell, X, 
 import { api } from "../services/api";
 import { toast } from "sonner";
 import { useSocket } from "../hooks/useSocket";
+import { useTranslation } from "react-i18next";
 
 // Notification type configuration for icons and colors
 const notificationConfig: Record<string, { icon: any; color: string; bgColor: string; label: string }> = {
@@ -54,6 +55,7 @@ const formatTimeAgo = (dateString: string): string => {
 };
 
 export function Notifications() {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, unread: 0, urgent: 0 });
@@ -184,8 +186,8 @@ export function Notifications() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Notifications</h1>
-          <p className="text-muted-foreground">Stay updated with your auction activity</p>
+          <h1 className="text-3xl font-bold mb-2">{t('common.notifications')}</h1>
+          <p className="text-muted-foreground">{t('notifications.stay_updated')}</p>
         </div>
         {unreadCount > 0 && (
           <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
@@ -203,7 +205,7 @@ export function Notifications() {
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.unread}</p>
-              <p className="text-sm text-muted-foreground">Unread</p>
+              <p className="text-sm text-muted-foreground">{t('notifications.unread')}</p>
             </div>
           </div>
         </Card>
@@ -214,7 +216,7 @@ export function Notifications() {
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.total}</p>
-              <p className="text-sm text-muted-foreground">Total</p>
+              <p className="text-sm text-muted-foreground">{t('notifications.total')}</p>
             </div>
           </div>
         </Card>
@@ -225,7 +227,7 @@ export function Notifications() {
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.urgent}</p>
-              <p className="text-sm text-muted-foreground">Urgent</p>
+              <p className="text-sm text-muted-foreground">{t('notifications.urgent')}</p>
             </div>
           </div>
         </Card>
@@ -239,7 +241,7 @@ export function Notifications() {
               value="all" 
               className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
             >
-              All ({notifications.length})
+              {t('common.all')} ({notifications.length})
             </TabsTrigger>
             <TabsTrigger 
               value="unread"

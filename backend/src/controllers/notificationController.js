@@ -820,3 +820,51 @@ exports.createPaymentFailedNotification = async (auction, winner, error) => {
     console.error("Error creating payment failed notification:", error);
   }
 };
+
+/**
+ * Create dispute resolved notification
+ * Notifies both parties when a dispute is resolved by an admin
+ */
+exports.createDisputeResolvedNotification = async (auction, winner, seller, action, details) => {
+  try {
+    const message = action === "reject" 
+      ? `The dispute for "${auction.title}" has been rejected. ${details || ""}`
+      : `The dispute for "${auction.title}" has been resolved with action: ${action}. ${details || ""}`;
+
+    // Notify winner
+    const winnerNotification = new Notification({
+      title: "⚖️ Dispute Resolved",
+      message: message,
+      type: "system",
+      userId: winner._id,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "resolved",
+        auctionTitle: auction.title,
+        resolutionAction: action,
+      },
+    });
+    await winnerNotification.save();
+
+    // Notify seller
+    const sellerNotification = new Notification({
+      title: "⚖️ Dispute Resolved",
+      message: message,
+      type: "system",
+      userId: seller._id || auction.seller,
+      auctionId: auction._id,
+      priority: "high",
+      metadata: {
+        escrowStatus: "resolved",
+        auctionTitle: auction.title,
+        resolutionAction: action,
+      },
+    });
+    await sellerNotification.save();
+
+    console.log(`✓ Dispute resolution notifications sent for auction: ${auction.title}`);
+  } catch (error) {
+    console.error("Error creating dispute resolution notification:", error);
+  }
+};

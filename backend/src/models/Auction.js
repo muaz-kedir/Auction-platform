@@ -82,24 +82,11 @@ paymentStatus: {
   default: "pending",
 },
 
-dispute: {
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  reason: {
-    type: String,
-    default: "",
-  },
-  openedAt: {
-    type: Date,
+  dispute: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Dispute",
     default: null,
   },
-  resolvedAt: {
-    type: Date,
-    default: null,
-  },
-},
 
 // Timestamps for escrow flow
 escrowHoldAt: {

@@ -1,0 +1,156 @@
+{
+  "common": {
+    "login": "Login",
+    "register": "Sign Up",
+    "get_started": "Get Started",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "home": "Home",
+    "auctions": "Auctions",
+    "categories": "Categories",
+    "how_it_works": "How It Works",
+    "search": "Search...",
+    "profile": "Profile",
+    "all": "All",
+    "my_account": "My Account",
+    "notifications": "Notifications",
+    "updating": "Updating...",
+    "view_all": "View All",
+    "categories": {
+      "electronics": "Electronics",
+      "watches": "Watches",
+      "art": "Art",
+      "vehicles": "Vehicles",
+      "jewelry": "Jewelry",
+      "collectibles": "Collectibles"
+    }
+  },
+  "landing": {
+    "hero_badge": "AI-Powered Auction Platform",
+    "hero_title_1": "Bid Smart.",
+    "hero_title_2": "Win Big.",
+    "hero_subtitle": "Experience the future of online auctions with AI-powered recommendations, real-time bidding, and military-grade escrow protection.",
+    "start_bidding": "Start Bidding",
+    "explore_auctions": "Explore Auctions",
+    "stats": {
+      "active_users": "Active Users",
+      "items_sold": "Items Sold",
+      "success_rate": "Success Rate"
+    },
+    "featured_title": "Featured Auctions",
+    "featured_subtitle": "Discover trending items ending soon",
+    "categories_title": "Browse by Category",
+    "categories_subtitle": "Find exactly what you're looking for",
+    "how_works_title": "How It Works",
+    "how_works_subtitle": "Start bidding in three simple steps",
+    "steps": {
+      "step_1_title": "Create Account",
+      "step_1_desc": "Sign up in seconds and verify your identity",
+      "step_2_title": "Browse & Bid",
+      "step_2_desc": "Explore auctions and place your bids with confidence",
+      "step_3_title": "Win & Secure",
+      "step_3_desc": "Win items with AI fraud detection and escrow protection"
+    },
+    "features_badge": "Platform Features",
+    "features_title": "Built for Trust, Speed & Security",
+    "features_subtitle": "Our platform combines cutting-edge technology with user-friendly design to deliver the best auction experience.",
+    "features": {
+      "ai": {
+        "title": "AI-Powered Recommendations",
+        "desc": "Get personalized auction suggestions based on your interests"
+      },
+      "escrow": {
+        "title": "Escrow Protection",
+        "desc": "Your money is safe until you receive and verify your items"
+      },
+      "realtime": {
+        "title": "Real-Time Bidding",
+        "desc": "Lightning-fast updates with no delays or missed opportunities"
+      },
+      "verified": {
+        "title": "Verified Sellers",
+        "desc": "All sellers are verified to ensure authenticity"
+      }
+    },
+    "testimonials_title": "What Our Users Say",
+    "testimonials_subtitle": "Join thousands of satisfied buyers and sellers",
+    "cta_title": "Ready to Start Bidding?",
+    "cta_subtitle": "Join thousands of users who trust BidSmart for their auction needs",
+    "footer_desc": "The most trusted online auction platform with AI and escrow protection.",
+    "footer_platform": "Platform",
+    "footer_support": "Support",
+    "footer_legal": "Legal"
+  },
+  "auth": {
+    "welcome_back": "Welcome Back",
+    "sign_in_desc": "Enter your credentials to access your account",
+    "email": "Email",
+    "password": "Password",
+    "forgot_password": "Forgot password?",
+    "dont_have_account": "Don't have an account?",
+    "create_account": "Create Account",
+    "full_name": "Full Name",
+    "already_have_account": "Already have an account?",
+    "remember_me": "Remember me",
+    "signing_in": "Signing in...",
+    "join_desc": "Join thousands of happy bidders",
+    "confirm_password": "Confirm Password",
+    "agree_to": "I agree to the",
+    "terms": "Terms of Service",
+    "and": "and",
+    "privacy": "Privacy Policy",
+    "creating_account": "Creating Account..."
+  },
+  "dashboard": {
+    "dashboard": "Dashboard",
+    "auctions": "Auctions",
+    "welcome_desc": "Welcome back! Here's what's happening with your auctions.",
+    "wallet_balance": "Wallet Balance",
+    "active_bids": "Active Bids",
+    "items_won": "Items Won",
+    "success_rate": "Success Rate",
+    "track_ongoing": "Track your ongoing auctions",
+    "no_active_bids": "No active bids yet",
+    "bidding_activity": "Bidding Activity",
+    "activity_desc": "Your bidding trends this week",
+    "quick_actions": "Quick Actions",
+    "recent_activity": "Recent Activity",
+    "my_bids": "My Bids",
+    "wallet": "Wallet",
+    "verifications": "Verifications",
+    "seller": "Seller",
+    "admin": "Admin",
+    "settings": "Settings"
+  },
+  "wallet": {
+    "verification": "Wallet Verification",
+    "verify_desc": "Verify your bank statement to unlock bidding access.",
+    "verification_status": "Verification Status",
+    "submit_verification": "Submit for Verification",
+    "funding_management": "Wallet Funding Management",
+    "review_requests": "Review and approve wallet funding requests from buyers.",
+    "buyer": "Buyer",
+    "request_details": "Request Details",
+    "requested_amount": "Requested Amount",
+    "approvals": "Approvals"
+  },
+  "notifications": {
+    "title": "Announcements",
+    "no_notifications": "No announcements yet",
+    "view_all_announcements": "View all announcements",
+    "stay_updated": "Stay updated with your auction activity",
+    "unread": "Unread",
+    "total": "Total",
+    "urgent": "Urgent"
+  },
+  "settings": {
+    "manage_desc": "Manage your account settings and preferences",
+    "profile_image": "Profile Image",
+    "profile_info": "Profile Information",
+    "update_profile": "Update Profile",
+    "change_password": "Change Password",
+    "current_password": "Current Password",
+    "new_password": "New Password"
+  }
+}

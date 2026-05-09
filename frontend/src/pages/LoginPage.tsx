@@ -12,8 +12,10 @@ import { ThemeToggle } from "../components/ThemeToggle";
 import { useAuth } from "../hooks/useAuth";
 import { toast } from "sonner";
 import { resolvePostAuthRedirectWithQuery } from "../utils/authRedirect";
+import { useTranslation } from "react-i18next";
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -115,8 +117,8 @@ export function LoginPage() {
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-muted-foreground">Login to your account to continue</p>
+            <h1 className="text-2xl font-bold mb-2">{t('auth.welcome_back')}</h1>
+            <p className="text-muted-foreground">{t('auth.sign_in_desc')}</p>
           </div>
 
           {/* Social Login */}
@@ -150,7 +152,7 @@ export function LoginPage() {
           {/* Login Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -167,7 +169,7 @@ export function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -198,27 +200,27 @@ export function LoginPage() {
               <div className="flex items-center gap-2">
                 <Checkbox id="remember" />
                 <label htmlFor="remember" className="text-sm cursor-pointer">
-                  Remember me
+                  {t('auth.remember_me')}
                 </label>
               </div>
               <a href="#" className="text-sm text-primary hover:underline">
-                Forgot password?
+                {t('auth.forgot_password')}
               </a>
             </div>
 
             <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? t('auth.signing_in') : t('common.login')}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">
-            Don't have an account?{" "}
+            {t('auth.dont_have_account')}{" "}
             <Link 
               to={`/register${authSwitchSearch}`} 
               state={{ from: location.state?.from }}
               className="text-primary hover:underline font-medium"
             >
-              Sign up
+              {t('common.register')}
             </Link>
           </p>
         </Card>

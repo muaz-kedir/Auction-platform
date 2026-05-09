@@ -23,8 +23,10 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { getImageUrl } from "../utils/imageUtils";
 import { useSocket } from "../hooks/useSocket";
+import { useTranslation } from "react-i18next";
 
 export function Dashboard() {
+  const { t } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isSeller = user?.role === "seller";
@@ -189,8 +191,8 @@ export function Dashboard() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's what's happening with your auctions.</p>
+        <h1 className="text-3xl font-bold mb-2">{t('dashboard.dashboard')}</h1>
+        <p className="text-muted-foreground">{t('dashboard.welcome_desc')}</p>
       </div>
 
       {/* Stats Grid */}
@@ -207,7 +209,7 @@ export function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Wallet Balance"
+            title={t('dashboard.wallet_balance')}
             value={`$${stats.walletBalance.toLocaleString()}`}
             change={stats.isWalletVerified ? (stats.walletBalance > 0 ? "Active" : "No funds") : "Wallet not verified"}
             icon={Wallet}
@@ -228,7 +230,7 @@ export function Dashboard() {
             }
           />
           <StatCard
-            title="Active Bids"
+            title={t('dashboard.active_bids')}
             value={stats.activeBidsCount.toString()}
             change={stats.activeBidsCount > 0 ? `${stats.activeBidsCount} ongoing` : "No active bids"}
             icon={Gavel}
@@ -249,14 +251,14 @@ export function Dashboard() {
             }
           />
           <StatCard
-            title="Items Won"
+            title={t('dashboard.items_won')}
             value={stats.itemsWon.toString()}
             change={stats.itemsWon > 0 ? `${stats.itemsWon} total` : "No wins yet"}
             icon={Trophy}
             trend={stats.itemsWon > 0 ? "up" : "neutral"}
           />
           <StatCard
-            title="Success Rate"
+            title={t('dashboard.success_rate')}
             value={`${stats.successRate}%`}
             change={stats.totalParticipatedAuctions > 0 ? `${stats.totalParticipatedAuctions} participated` : "No data"}
             icon={TrendingUp}
@@ -271,12 +273,12 @@ export function Dashboard() {
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold">Active Bids</h2>
-                <p className="text-sm text-muted-foreground">Track your ongoing auctions</p>
+                <h2 className="text-xl font-bold">{t('dashboard.active_bids')}</h2>
+                <p className="text-sm text-muted-foreground">{t('dashboard.track_ongoing')}</p>
               </div>
               <Link to="/dashboard/my-bids">
                 <Button variant="outline" size="sm" className="gap-2">
-                  View All <ArrowUpRight className="h-4 w-4" />
+                  {t('common.view_all')} <ArrowUpRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
@@ -288,9 +290,9 @@ export function Dashboard() {
             ) : activeBids.length === 0 ? (
               <div className="text-center py-12">
                 <Gavel className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No active bids yet</p>
+                <p className="text-muted-foreground">{t('dashboard.no_active_bids')}</p>
                 <Link to="/dashboard/auctions">
-                  <Button className="mt-4">Browse Auctions</Button>
+                  <Button className="mt-4">{t('landing.explore_auctions')}</Button>
                 </Link>
               </div>
             ) : (
@@ -351,8 +353,8 @@ export function Dashboard() {
           {/* Activity Chart */}
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
             <div className="mb-6">
-              <h2 className="text-xl font-bold">Bidding Activity</h2>
-              <p className="text-sm text-muted-foreground">Your bidding trends this week</p>
+              <h2 className="text-xl font-bold">{t('dashboard.bidding_activity')}</h2>
+              <p className="text-sm text-muted-foreground">{t('dashboard.activity_desc')}</p>
             </div>
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -404,7 +406,7 @@ export function Dashboard() {
         <div className="space-y-4">
           {/* Quick Actions */}
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-            <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.quick_actions')}</h2>
             <div className="space-y-2">
               <Link to="/dashboard/auctions">
                 <Button variant="outline" className="w-full justify-start gap-2">
@@ -429,7 +431,7 @@ export function Dashboard() {
 
           {/* Recent Activity */}
           <Card className="p-6 border-border/50 bg-card/50 backdrop-blur-sm">
-            <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+            <h2 className="text-xl font-bold mb-4">{t('dashboard.recent_activity')}</h2>
             <div className="space-y-3">
               {recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-start gap-3 pb-3 border-b border-border/50 last:border-0 last:pb-0">

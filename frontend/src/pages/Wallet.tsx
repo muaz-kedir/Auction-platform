@@ -9,6 +9,7 @@ import { Loader2, Upload, ShieldAlert, CheckCircle2, Clock3, Wallet as WalletIco
 import { toast } from "sonner";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 interface ApprovalDecision {
   role: "super_admin" | "admin" | "seller";
@@ -61,6 +62,7 @@ interface WalletFundingItem {
 }
 
 export function Wallet() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [verification, setVerification] = useState<WalletVerification | null>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -166,8 +168,8 @@ export function Wallet() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Wallet Funding Management</h1>
-          <p className="text-muted-foreground">Review and approve wallet funding requests from buyers.</p>
+          <h1 className="text-3xl font-bold mb-2">{t('wallet.funding_management')}</h1>
+          <p className="text-muted-foreground">{t('wallet.review_requests')}</p>
         </div>
 
         <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -180,12 +182,12 @@ export function Wallet() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/50">
-                    <th className="text-left p-4 font-semibold">Buyer</th>
-                    <th className="text-left p-4 font-semibold">Request Details</th>
-                    <th className="text-left p-4 font-semibold">Requested Amount</th>
-                    <th className="text-left p-4 font-semibold">Status</th>
-                    <th className="text-left p-4 font-semibold">Approvals</th>
-                    <th className="text-right p-4 font-semibold">Actions</th>
+                    <th className="text-left p-4 font-semibold">{t('wallet.buyer')}</th>
+                    <th className="text-left p-4 font-semibold">{t('wallet.request_details')}</th>
+                    <th className="text-left p-4 font-semibold">{t('wallet.requested_amount')}</th>
+                    <th className="text-left p-4 font-semibold">{t('common.status')}</th>
+                    <th className="text-left p-4 font-semibold">{t('wallet.approvals')}</th>
+                    <th className="text-right p-4 font-semibold">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -353,14 +355,14 @@ export function Wallet() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Wallet Verification</h1>
-        <p className="text-muted-foreground">Verify your bank statement to unlock bidding access.</p>
+        <h1 className="text-3xl font-bold mb-2">{t('wallet.verification')}</h1>
+        <p className="text-muted-foreground">{t('wallet.verify_desc')}</p>
       </div>
 
       <Card className="p-6 space-y-4">
         <div className="flex items-center gap-3">
           <WalletIcon className="h-5 w-5 text-primary" />
-          <h2 className="text-xl font-semibold">Verification Status</h2>
+          <h2 className="text-xl font-semibold">{t('wallet.verification_status')}</h2>
         </div>
 
         {!verification && (
@@ -437,7 +439,7 @@ export function Wallet() {
         </div>
         <Button onClick={handleSubmit} disabled={submitting} className="gap-2">
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          Submit for Verification
+          {t('wallet.submit_verification')}
         </Button>
       </Card>
     </div>

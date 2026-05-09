@@ -380,16 +380,30 @@ export const api = {
 
   // Disputes
   disputes: {
-    create: (orderId: string, reason: string, description: string) =>
+    create: (data: { auctionId: string; reason: string; description: string; evidence?: any[] }) =>
       apiRequest('/disputes', {
         method: 'POST',
-        body: JSON.stringify({ orderId, reason, description }),
+        body: JSON.stringify(data),
       }),
     
-    resolve: (id: string, resolution: string) =>
+    getById: (id: string) =>
+      apiRequest(`/disputes/${id}`),
+
+    getAll: (params?: { page?: number; limit?: number; status?: string }) => {
+      const queryString = params ? '?' + new URLSearchParams(params as any).toString() : '';
+      return apiRequest(`/disputes${queryString}`);
+    },
+
+    updateStatus: (id: string, status: string) =>
+      apiRequest(`/disputes/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
+    
+    resolve: (id: string, action: 'refund' | 'release' | 'reject', details?: string) =>
       apiRequest(`/disputes/${id}/resolve`, {
-        method: 'PUT',
-        body: JSON.stringify({ resolution }),
+        method: 'POST',
+        body: JSON.stringify({ action, details }),
       }),
   },
 

@@ -1471,10 +1471,22 @@ export function AuctionDetail() {
 
           {/* Escrow Status - Show for ended auctions */}
           {auction?.status === "ENDED" && (
-            <EscrowStatus 
-              auctionId={auction._id} 
-              auctionStatus={auction.status} 
-            />
+            <div className="space-y-4">
+              <EscrowStatus 
+                auctionId={auction._id} 
+                auctionStatus={auction.status} 
+              />
+              {(user?._id === auction.seller._id || isCurrentUserWinner) && (
+                <Button 
+                  variant="outline" 
+                  className="w-full border-destructive/30 text-destructive hover:bg-destructive/10"
+                  onClick={() => navigate(`/dashboard/disputes/create/${auction._id}`)}
+                >
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Report Issue / Open Dispute
+                </Button>
+              )}
+            </div>
           )}
 
           {/* Trust & Safety */}

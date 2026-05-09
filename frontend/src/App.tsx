@@ -28,6 +28,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
 
+import { CreateDispute } from './pages/CreateDispute';
+import { AdminDisputeDetail } from './pages/AdminDisputeDetail';
+
 function AppContent() {
   // Enable push notifications
   usePushNotifications();
@@ -71,6 +74,7 @@ function AppContent() {
         { path: "seller/create", Component: CreateAuction },
         { path: "seller/edit/:id", Component: EditAuction },
         { path: "wallet-verifications", Component: WalletVerificationManagement },
+        { path: "disputes/create/:auctionId", Component: CreateDispute },
         {
           path: "admin",
           element: (
@@ -100,6 +104,14 @@ function AppContent() {
           element: (
             <ProtectedRoute requireAdmin={true}>
               <AuctionApprovalManagement />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: "admin/disputes/:id",
+          element: (
+            <ProtectedRoute requireAdmin={true}>
+              <AdminDisputeDetail />
             </ProtectedRoute>
           ),
         },

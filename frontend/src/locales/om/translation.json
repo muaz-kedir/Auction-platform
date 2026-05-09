@@ -1,0 +1,156 @@
+{
+  "common": {
+    "login": "Seeni",
+    "register": "Galmaa'i",
+    "get_started": "Eegali",
+    "logout": "Ba'i",
+    "dashboard": "Dabaree",
+    "settings": "Sajataa",
+    "home": "Mana",
+    "auctions": "Caalbaasii",
+    "categories": "Ramaddiiwwan",
+    "how_it_works": "Akkaataa itti hojjetu",
+    "search": "Barbaadi...",
+    "profile": "Eenyummaa",
+    "all": "Hunda",
+    "my_account": "Herrega Koo",
+    "notifications": "Beeksisa",
+    "updating": "Haaromsaa jira...",
+    "view_all": "Hunda Ilaali",
+    "categories": {
+      "electronics": "Meeshaalee Elektirooniksii",
+      "watches": "Sa'aatiiwwan",
+      "art": "Ogummaa Harkaa",
+      "vehicles": "Konkolaattota",
+      "jewelry": "Faaya",
+      "collectibles": "Meeshaalee Sassaabaman"
+    }
+  },
+  "landing": {
+    "hero_badge": "Istaatistiksii Caalbaasii AI-n Hoalata",
+    "hero_title_1": "Ogummaan Caal-baasi",
+    "hero_title_2": "Guddatti Mo'adhu.",
+    "hero_subtitle": "Fuuldura caalbaasii onlaayinii gorsa AI, caalbaasii yeroo sirrii fi eegumsa eskuroo sadarkaa waraanaa waliin dhandhami.",
+    "start_bidding": "Caalbaasii Eegali",
+    "explore_auctions": "Caalbaasiiwwan Sakatta'i",
+    "stats": {
+      "active_users": "Fayyadamtoota Sassaabaa",
+      "items_sold": "Meeshaalee Gurguraman",
+      "success_rate": "Reetii Milkaa'inaa"
+    },
+    "featured_title": "Caalbaasiiwwan Filataman",
+    "featured_subtitle": "Meeshaalee dhiheenyatti dhumatan adda baasi",
+    "categories_title": "Ramaddiin Sakatta'i",
+    "categories_subtitle": "Wanta barbaaddu sirriitti argadhu",
+    "how_works_title": "Akkaataa Itti Hojjetu",
+    "how_works_subtitle": "Tarkaanfiiwwan salphaa sadiin caalbaasii eegali",
+    "steps": {
+      "step_1_title": "Herrega Uumi",
+      "step_1_desc": "Sekondii muraasa keessatti galmaa'ii eenyummaa kee mirkaneessi",
+      "step_2_title": "Sakatta'i fi Caalbaasii",
+      "step_2_desc": "Caalbaasiiwwan sakatta'i fi amanamummaadhaan caalbaasii kee irratti hirmaadhu",
+      "step_3_title": "Mo'adhu fi Eegumsa Argadhu",
+      "step_3_desc": "Caal-baasi AI-n gowwoomsaa adda baasu fi eegumsa eskurootiin mo'adhu"
+    },
+    "features_badge": "Amaloota Pilaatfoormii",
+    "features_title": "Amanamummaa, Ariitii fi Nageenyaaf ijaarame",
+    "features_subtitle": "Pilaatfoormiin keenya teknooloojii ammayyaa diizaayinii fayyadamaa waliin walitti makuun muuxannoo caalbaasii gaarii dhiyeessa.",
+    "features": {
+      "ai": {
+        "title": "Gorsa AI-n Deeggarame",
+        "desc": "Fedhii kee irratti hundaa'uun gorsa caalbaasii dhuunfataa argadhu"
+      },
+      "escrow": {
+        "title": "Eegumsa Eskuroo",
+        "desc": "Hamma meeshaalee kee argattee mirkaneessutti maallaqni kee eegumsa qaba"
+      },
+      "realtime": {
+        "title": "Caalbaasii Yeroo Sirrii",
+        "desc": "Odeeffannoo ariifataa harkifannaa tokko malee argadhu"
+      },
+      "verified": {
+        "title": "Gurgurtoota Mirkanaa'an",
+        "desc": "Gurgurtoonni hundi dhugummaa isaanii mirkaneessuuf sakatta'amu"
+      }
+    },
+    "testimonials_title": "Fayyadamtoonni Keenya Maal Jedhu",
+    "testimonials_subtitle": "Kumaatamaan kan lakkaawwaman gurgurtoota fi bitattoota milkaa'an waliin walitti makami",
+    "cta_title": "Caalbaasii Jalqabuuf Qophiidhaa?",
+    "cta_subtitle": "Kumaatamaan kan lakkaawwaman fayyadamtoota BidSmart amanan waliin walitti makami",
+    "footer_desc": "Pilaatfoormii caalbaasii onlaayinii AI fi eegumsa eskurootiin baay'ee amanamu.",
+    "footer_platform": "Pilaatfoormii",
+    "footer_support": "Deeggarsa",
+    "footer_legal": "Seeraa"
+  },
+  "auth": {
+    "welcome_back": "Baga Nagaan Dhufte",
+    "sign_in_desc": "Gara herrega keetti seenuuf odeeffannoo kee galchi",
+    "email": "Iimeelii",
+    "password": "Iggitii",
+    "forgot_password": "Iggitii dagattee?",
+    "dont_have_account": "Herrega hin qabduu?",
+    "create_account": "Herrega Uumi",
+    "full_name": "Maqaa Guutuu",
+    "already_have_account": " herrega qabdaa?",
+    "remember_me": "Na yaadadhu",
+    "signing_in": "Seenaa jira...",
+    "join_desc": "Kumaatamaan kan lakkaawwaman bitattoota gammadoo waliin walitti makami",
+    "confirm_password": "Iggitii Mirkaneessi",
+    "agree_to": "Itti walii gala",
+    "terms": "Tajaajila Seeraa",
+    "and": "fi",
+    "privacy": "Imaammata Dhuunfaa",
+    "creating_account": "Herrega uumaa jira..."
+  },
+  "dashboard": {
+    "dashboard": "Dabaree",
+    "auctions": "Caalbaasii",
+    "welcome_desc": "Baga nagaan deebite! Maal akka deemaa jiru ilaali.",
+    "wallet_balance": "Baalaansii Walleetii",
+    "active_bids": "Caalbaasiiwwan Hojii Irra Jiran",
+    "items_won": "Meeshaalee Mo'ataman",
+    "success_rate": "Reetii Milkaa'inaa",
+    "track_ongoing": "Caalbaasiiwwan kee hordofi",
+    "no_active_bids": "Hamma yoonaatti caalbaasii hojii irra jiru hin qabdu",
+    "bidding_activity": "Sochii Caalbaasii",
+    "activity_desc": "Sochii caalbaasii torban kanaa",
+    "quick_actions": "Gochaawwan Ariifataa",
+    "recent_activity": "Sochii dhiheenyaa",
+    "my_bids": "Caalbaasii Koo",
+    "wallet": "Walleetii",
+    "verifications": "Mirkaneessaa",
+    "seller": "Gurguraa",
+    "admin": "Bulchaa",
+    "settings": "Sajata"
+  },
+  "wallet": {
+    "verification": "Mirkaneessaa Walleetii",
+    "verify_desc": "Caalbaasii akka dandeessuuf herrega baankii kee mirkaneessi.",
+    "verification_status": "Haala Mirkaneessaa",
+    "submit_verification": "Mirkaneessaaf ergi",
+    "funding_management": "Bulchiinsa Faandiingii Walleetii",
+    "review_requests": "Gaaffiiwwan faandiingii bitattootaa sakatta'ii mirkaneessi.",
+    "buyer": "Bitataa",
+    "request_details": "Bal'ina Gaaffii",
+    "requested_amount": "Maallaqa Gaafatame",
+    "approvals": "Mirkaneessaa-wwan"
+  },
+  "notifications": {
+    "title": "Beeksisoota",
+    "no_notifications": "Hamma yoonaatti beeksiisni hin jiru",
+    "view_all_announcements": "Beeksisoota hunda ilaali",
+    "stay_updated": "Sochii caalbaasii keetiin odeeffannoo argadhu",
+    "unread": "Kan hin dubbifamne",
+    "total": "Waliigala",
+    "urgent": "Ariifataa"
+  },
+  "settings": {
+    "manage_desc": "Sajataa fi fedhii herrega kee bulchi",
+    "profile_image": "Suuraa Eenyummaa",
+    "profile_info": "Odeeffannoo Eenyummaa",
+    "update_profile": "Eenyummaa Haaromsi",
+    "change_password": "Iggitii Jijjiiri",
+    "current_password": "Iggitii Ammaa",
+    "new_password": "Iggitii Haaraa"
+  }
+}

@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { api } from "../services/api";
 import { toast } from "sonner";
 import {
@@ -106,6 +107,7 @@ interface Winner {
 }
 
 export function AdminPanel() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [auctions, setAuctions] = useState<Auction[]>([]);
@@ -316,15 +318,15 @@ export function AdminPanel() {
           <p className="text-muted-foreground">Manage users, auctions, and platform operations</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => window.location.href = "/dashboard/admin/users"} variant="outline">
+          <Button onClick={() => navigate("/dashboard/admin/users")} variant="outline">
             <Shield className="h-4 w-4 mr-2" />
             Users
           </Button>
-          <Button onClick={() => window.location.href = "/dashboard/admin/wallet-funding"} variant="outline">
+          <Button onClick={() => navigate("/dashboard/admin/wallet-funding")} variant="outline">
             <DollarSign className="h-4 w-4 mr-2" />
             Wallet Funding
           </Button>
-          <Button onClick={() => window.location.href = "/dashboard/admin/announcements"}>
+          <Button onClick={() => navigate("/dashboard/admin/announcements")}>
             <Megaphone className="h-4 w-4 mr-2" />
             Announcements
           </Button>
@@ -665,26 +667,54 @@ export function AdminPanel() {
                   ) : (
                     disputes.map((dispute) => (
                       <TableRow key={dispute._id}>
-                        <TableCell className="font-medium">{dispute.auction?.title || "N/A"}</TableCell>
-                        <TableCell>{dispute.buyer?.name || "Unknown"}</TableCell>
-                        <TableCell>{dispute.seller?.name || "Unknown"}</TableCell>
-                        <TableCell>{dispute.reason}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{dispute.auction?.title || "Deleted Auction"}</span>
+                            <span className="text-xs text-muted-foreground font-mono">{dispute.auction?._id}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={dispute.status === "OPEN" ? "destructive" : "default"} className={dispute.status === "RESOLVED" ? "bg-secondary" : ""}>
-                            {dispute.status}
+                          <div className="flex flex-col">
+                            <span>{dispute.buyer?.name || "Unknown"}</span>
+                            <span className="text-xs text-muted-foreground">{dispute.buyer?.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span>{dispute.seller?.name || "Unknown"}</span>
+                            <span className="text-xs text-muted-foreground">{dispute.seller?.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <Badge variant="outline" className="w-fit mb-1">{dispute.reason}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={
+                              dispute.status === "OPEN" ? "destructive" : 
+                              dispute.status === "UNDER_REVIEW" ? "default" : 
+                              dispute.status === "RESOLVED" ? "default" : "outline"
+                            } 
+                            className={
+                              dispute.status === "UNDER_REVIEW" ? "bg-blue-500 hover:bg-blue-600" :
+                              dispute.status === "RESOLVED" ? "bg-green-500 hover:bg-green-600" : ""
+                            }
+                          >
+                            {dispute.status.replace("_", " ")}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatDate(dispute.createdAt)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            {dispute.status === "OPEN" && (
-                              <Button size="sm" onClick={() => handleResolveDispute(dispute._id)}>
-                                Resolve
-                              </Button>
-                            )}
-                            {dispute.status === "RESOLVED" && (
-                              <Button size="sm" variant="outline">View Details</Button>
-                            )}
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => navigate(`/dashboard/admin/disputes/${dispute._id}`)}
+                            >
+                              View & Resolve
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>

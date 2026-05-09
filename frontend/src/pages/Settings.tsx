@@ -9,8 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Separator } from "../components/ui/separator";
 import { toast } from "sonner";
 import { Camera, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function Settings() {
+  const { t } = useTranslation();
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
@@ -141,13 +143,13 @@ export function Settings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        <h1 className="text-3xl font-bold mb-2">{t('common.settings')}</h1>
+        <p className="text-muted-foreground">{t('settings.manage_desc')}</p>
       </div>
 
       {/* Profile Image Section */}
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Profile Image</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('settings.profile_image')}</h2>
         <div className="flex items-center gap-6">
           <div className="relative">
             <Avatar className="h-24 w-24">
@@ -188,7 +190,7 @@ export function Settings() {
 
       {/* Profile Information Section */}
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('settings.profile_info')}</h2>
         <form onSubmit={handleProfileUpdate} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
@@ -226,10 +228,10 @@ export function Settings() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
+                {t('common.updating')}
               </>
             ) : (
-              "Update Profile"
+              t('settings.update_profile')
             )}
           </Button>
         </form>
@@ -237,10 +239,10 @@ export function Settings() {
 
       {/* Change Password Section */}
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Change Password</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('settings.change_password')}</h2>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Current Password</Label>
+            <Label htmlFor="currentPassword">{t('settings.current_password')}</Label>
             <Input
               id="currentPassword"
               type="password"
@@ -259,7 +261,7 @@ export function Settings() {
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New Password</Label>
+            <Label htmlFor="newPassword">{t('settings.new_password')}</Label>
             <Input
               id="newPassword"
               type="password"
@@ -296,10 +298,10 @@ export function Settings() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Changing...
+                {t('common.updating')}
               </>
             ) : (
-              "Change Password"
+              t('settings.change_password')
             )}
           </Button>
         </form>

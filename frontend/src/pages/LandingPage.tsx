@@ -20,32 +20,34 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { FeaturedAuctions } from "../components/FeaturedAuctions";
+import { useTranslation } from "react-i18next";
 
 const categories = [
-  { name: "Electronics", icon: Zap, color: "text-blue-500" },
-  { name: "Watches", icon: Clock, color: "text-purple-500" },
-  { name: "Art", icon: Sparkles, color: "text-pink-500" },
-  { name: "Vehicles", icon: TrendingUp, color: "text-green-500" },
-  { name: "Jewelry", icon: Star, color: "text-yellow-500" },
-  { name: "Collectibles", icon: Shield, color: "text-red-500" },
+  { name: "common.categories.electronics", icon: Zap, color: "text-blue-500" },
+  { name: "common.categories.watches", icon: Clock, color: "text-purple-500" },
+  { name: "common.categories.art", icon: Sparkles, color: "text-pink-500" },
+  { name: "common.categories.vehicles", icon: TrendingUp, color: "text-green-500" },
+  { name: "common.categories.jewelry", icon: Star, color: "text-yellow-500" },
+  { name: "common.categories.collectibles", icon: Shield, color: "text-red-500" },
 ];
 
 const steps = [
   {
     number: "01",
-    title: "Create Account",
-    description: "Sign up in seconds and verify your identity",
+    title: "landing.steps.step_1_title",
+    description: "landing.steps.step_1_desc",
   },
   {
     number: "02",
-    title: "Browse & Bid",
-    description: "Explore auctions and place your bids with confidence",
+    title: "landing.steps.step_2_title",
+    description: "landing.steps.step_2_desc",
   },
   {
     number: "03",
-    title: "Win & Secure",
-    description: "Win items with AI fraud detection and escrow protection",
+    title: "landing.steps.step_3_title",
+    description: "landing.steps.step_3_desc",
   },
 ];
 
@@ -90,6 +92,7 @@ interface PublicStats {
 const SEEN_ANNOUNCEMENTS_KEY = "seenAnnouncements";
 
 export function LandingPage() {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -197,16 +200,16 @@ export function LandingPage() {
 
             <div className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-sm hover:text-primary transition-colors">
-                Home
+                {t('common.home')}
               </Link>
               <Link to="/dashboard/auctions" className="text-sm hover:text-primary transition-colors">
-                Auctions
+                {t('common.auctions')}
               </Link>
               <Link to="/dashboard/auctions" className="text-sm hover:text-primary transition-colors">
-                Categories
+                {t('common.categories')}
               </Link>
               <Link to="#how-it-works" className="text-sm hover:text-primary transition-colors">
-                How It Works
+                {t('common.how_it_works')}
               </Link>
             </div>
 
@@ -236,7 +239,7 @@ export function LandingPage() {
                       <div className="p-4 border-b border-border flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Megaphone className="h-4 w-4 text-primary" />
-                          <h3 className="font-semibold">Announcements</h3>
+                          <h3 className="font-semibold">{t('notifications.title')}</h3>
                         </div>
                         <button 
                           onClick={handleCloseNotifications}
@@ -249,7 +252,7 @@ export function LandingPage() {
                         {announcements.length === 0 ? (
                           <div className="p-8 text-center text-muted-foreground">
                             <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No announcements yet</p>
+                            <p className="text-sm">{t('notifications.no_notifications')}</p>
                           </div>
                         ) : (
                           <div className="divide-y divide-border">
@@ -291,7 +294,7 @@ export function LandingPage() {
                           className="block text-center text-sm text-primary hover:underline"
                           onClick={() => setShowNotifications(false)}
                         >
-                          View all announcements
+                          {t('notifications.view_all_announcements')}
                         </Link>
                       </div>
                     </Card>
@@ -299,12 +302,13 @@ export function LandingPage() {
                 )}
               </div>
 
+              <LanguageSwitcher />
               <ThemeToggle />
               <Link to="/login">
-                <Button variant="ghost">Login</Button>
+                <Button variant="ghost">{t('common.login')}</Button>
               </Link>
               <Link to="/register">
-                <Button>Get Started</Button>
+                <Button>{t('common.get_started')}</Button>
               </Link>
             </div>
           </div>
@@ -323,30 +327,29 @@ export function LandingPage() {
           >
             <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
               <Sparkles className="h-3 w-3 mr-1" />
-              AI-Powered Auction Platform
+              {t('landing.hero_badge')}
             </Badge>
             
             <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">
-              Bid Smart.{" "}
+              {t('landing.hero_title_1')}{" "}
               <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Win Big.
+                {t('landing.hero_title_2')}
               </span>
             </h1>
             
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Experience the future of online auctions with AI-powered recommendations, 
-              real-time bidding, and military-grade escrow protection.
+              {t('landing.hero_subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/register">
                 <Button size="lg" className="gap-2">
-                  Start Bidding <ArrowRight className="h-4 w-4" />
+                  {t('landing.start_bidding')} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/dashboard/auctions">
                 <Button size="lg" variant="outline">
-                  Explore Auctions
+                  {t('landing.explore_auctions')}
                 </Button>
               </Link>
             </div>
@@ -356,21 +359,21 @@ export function LandingPage() {
                 <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
                   {stats.activeUsers}
                 </p>
-                <p className="text-sm text-muted-foreground">Active Users</p>
+                <p className="text-sm text-muted-foreground">{t('landing.stats.active_users')}</p>
               </div>
               <div className="h-12 w-px bg-border" />
               <div className="text-center">
                 <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
                   {stats.itemsSold}
                 </p>
-                <p className="text-sm text-muted-foreground">Items Sold</p>
+                <p className="text-sm text-muted-foreground">{t('landing.stats.items_sold')}</p>
               </div>
               <div className="h-12 w-px bg-border" />
               <div className="text-center">
                 <p className={`text-3xl font-bold text-primary ${statsLoading ? 'animate-pulse' : ''}`}>
                   {stats.successRate}%
                 </p>
-                <p className="text-sm text-muted-foreground">Success Rate</p>
+                <p className="text-sm text-muted-foreground">{t('landing.stats.success_rate')}</p>
               </div>
             </div>
           </motion.div>
@@ -382,12 +385,12 @@ export function LandingPage() {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl font-bold mb-2">Featured Auctions</h2>
-              <p className="text-muted-foreground">Discover trending items ending soon</p>
+              <h2 className="text-3xl font-bold mb-2">{t('landing.featured_title')}</h2>
+              <p className="text-muted-foreground">{t('landing.featured_subtitle')}</p>
             </div>
             <Link to="/auctions">
               <Button variant="outline" className="gap-2">
-                View All <ArrowRight className="h-4 w-4" />
+                {t('common.view_all')} <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
           </div>
@@ -400,8 +403,8 @@ export function LandingPage() {
       <section className="py-20">
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-2">Browse by Category</h2>
-            <p className="text-muted-foreground">Find exactly what you're looking for</p>
+            <h2 className="text-3xl font-bold mb-2">{t('landing.categories_title')}</h2>
+            <p className="text-muted-foreground">{t('landing.categories_subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -414,7 +417,7 @@ export function LandingPage() {
               >
                 <Card className="p-6 text-center hover:border-primary/50 transition-all cursor-pointer group">
                   <category.icon className={`h-8 w-8 mx-auto mb-3 ${category.color} group-hover:scale-110 transition-transform`} />
-                  <p className="font-medium">{category.name}</p>
+                  <p className="font-medium">{t(category.name)}</p>
                 </Card>
               </motion.div>
             ))}
@@ -426,8 +429,8 @@ export function LandingPage() {
       <section id="how-it-works" className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-2">How It Works</h2>
-            <p className="text-muted-foreground">Start bidding in three simple steps</p>
+            <h2 className="text-3xl font-bold mb-2">{t('landing.how_works_title')}</h2>
+            <p className="text-muted-foreground">{t('landing.how_works_subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -446,8 +449,8 @@ export function LandingPage() {
                     <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
                       <span className="text-2xl font-bold text-primary">{step.number}</span>
                     </div>
-                    <h3 className="text-xl font-bold mb-3">{step.title}</h3>
-                    <p className="text-muted-foreground">{step.description}</p>
+                    <h3 className="text-xl font-bold mb-3">{t(step.title)}</h3>
+                    <p className="text-muted-foreground">{t(step.description)}</p>
                   </div>
                 </Card>
               </motion.div>
@@ -462,22 +465,21 @@ export function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <Badge className="bg-primary/10 text-primary border-primary/20">
-                Platform Features
+                {t('landing.features_badge')}
               </Badge>
               <h2 className="text-4xl font-bold">
-                Built for Trust, Speed & Security
+                {t('landing.features_title')}
               </h2>
               <p className="text-lg text-muted-foreground">
-                Our platform combines cutting-edge technology with user-friendly design 
-                to deliver the best auction experience.
+                {t('landing.features_subtitle')}
               </p>
 
               <div className="space-y-4">
                 {[
-                  { icon: Sparkles, title: "AI-Powered Recommendations", description: "Get personalized auction suggestions based on your interests" },
-                  { icon: Shield, title: "Escrow Protection", description: "Your money is safe until you receive and verify your items" },
-                  { icon: Zap, title: "Real-Time Bidding", description: "Lightning-fast updates with no delays or missed opportunities" },
-                  { icon: CheckCircle2, title: "Verified Sellers", description: "All sellers are verified to ensure authenticity" },
+                  { icon: Sparkles, title: "landing.features.ai.title", description: "landing.features.ai.desc" },
+                  { icon: Shield, title: "landing.features.escrow.title", description: "landing.features.escrow.desc" },
+                  { icon: Zap, title: "landing.features.realtime.title", description: "landing.features.realtime.desc" },
+                  { icon: CheckCircle2, title: "landing.features.verified.title", description: "landing.features.verified.desc" },
                 ].map((feature, index) => (
                   <motion.div
                     key={feature.title}
@@ -490,8 +492,8 @@ export function LandingPage() {
                       <feature.icon className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">{feature.title}</h4>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                      <h4 className="font-semibold mb-1">{t(feature.title)}</h4>
+                      <p className="text-sm text-muted-foreground">{t(feature.description)}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -536,8 +538,8 @@ export function LandingPage() {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-2">What Our Users Say</h2>
-            <p className="text-muted-foreground">Join thousands of satisfied buyers and sellers</p>
+            <h2 className="text-3xl font-bold mb-2">{t('landing.testimonials_title')}</h2>
+            <p className="text-muted-foreground">{t('landing.testimonials_subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -577,19 +579,19 @@ export function LandingPage() {
       <section className="py-20">
         <div className="container mx-auto px-6">
           <Card className="p-12 text-center bg-gradient-to-br from-primary/10 via-card to-secondary/10 border-primary/20">
-            <h2 className="text-4xl font-bold mb-4">Ready to Start Bidding?</h2>
+            <h2 className="text-4xl font-bold mb-4">{t('landing.cta_title')}</h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of users who trust BidSmart for their auction needs
+              {t('landing.cta_subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/register">
                 <Button size="lg" className="gap-2">
-                  Create Free Account <ArrowRight className="h-4 w-4" />
+                  {t('auth.create_account')} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/dashboard/auctions">
                 <Button size="lg" variant="outline">
-                  Browse Auctions
+                  {t('landing.explore_auctions')}
                 </Button>
               </Link>
             </div>
@@ -609,12 +611,12 @@ export function LandingPage() {
                 <span className="text-lg font-bold">BidSmart</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                The most trusted online auction platform with AI and escrow protection.
+                {t('landing.footer_desc')}
               </p>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
+              <h4 className="font-semibold mb-4">{t('landing.footer_platform')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-primary transition-colors">How it works</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>
@@ -624,7 +626,7 @@ export function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
+              <h4 className="font-semibold mb-4">{t('landing.footer_support')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
@@ -634,7 +636,7 @@ export function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
+              <h4 className="font-semibold mb-4">{t('landing.footer_legal')}</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>

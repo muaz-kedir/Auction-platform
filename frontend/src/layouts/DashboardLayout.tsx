@@ -29,21 +29,24 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { useAuth } from "../hooks/useAuth";
+import { useTranslation } from "react-i18next";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller"] },
-  { name: "Auctions", href: "/dashboard/auctions", icon: Gavel, roles: ["admin", "super_admin", "seller", "buyer"] },
-  { name: "My Bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
-  { name: "Wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller"] },
-  { name: "Notifications", href: "/dashboard/notifications", icon: Bell, roles: ["admin", "super_admin", "seller", "buyer"] },
-  { name: "Verifications", href: "/dashboard/wallet-verifications", icon: Shield, roles: ["admin", "super_admin", "seller"] },
-  { name: "Seller", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin"] },
-  { name: "Admin", href: "/dashboard/admin", icon: Shield, roles: ["admin", "super_admin"] },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "dashboard.dashboard", href: "/dashboard", icon: LayoutDashboard, roles: ["admin", "super_admin", "seller"] },
+  { name: "dashboard.auctions", href: "/dashboard/auctions", icon: Gavel, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "dashboard.my_bids", href: "/dashboard/my-bids", icon: TrendingUp, roles: ["admin", "super_admin", "buyer"] },
+  { name: "dashboard.wallet", href: "/dashboard/wallet", icon: Wallet, roles: ["admin", "super_admin", "seller"] },
+  { name: "dashboard.notifications", href: "/dashboard/notifications", icon: Bell, roles: ["admin", "super_admin", "seller", "buyer"] },
+  { name: "dashboard.verifications", href: "/dashboard/wallet-verifications", icon: Shield, roles: ["admin", "super_admin", "seller"] },
+  { name: "dashboard.seller", href: "/dashboard/seller", icon: ShoppingBag, roles: ["admin", "super_admin"] },
+  { name: "dashboard.admin", href: "/dashboard/admin", icon: Shield, roles: ["admin", "super_admin"] },
+  { name: "dashboard.settings", href: "/dashboard/settings", icon: Settings, roles: ["admin", "super_admin", "seller", "buyer"] },
 ];
 
 export function DashboardLayout() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,7 +132,7 @@ export function DashboardLayout() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search..."
+                placeholder={t('common.search')}
                 className="pl-9 bg-sidebar-accent border-sidebar-border"
               />
             </div>
@@ -151,8 +154,8 @@ export function DashboardLayout() {
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                  {item.name === "Notifications" && (
+                  <span>{t(item.name)}</span>
+                  {item.name.includes("notifications") && (
                     <Badge className="ml-auto bg-destructive/90 text-white border-0 h-5 min-w-5 flex items-center justify-center p-0 px-1.5">
                       3
                     </Badge>
@@ -194,6 +197,7 @@ export function DashboardLayout() {
           <div className="flex-1" />
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <ThemeToggle />
             
             <Button variant="ghost" size="icon" className="relative">
@@ -215,20 +219,20 @@ export function DashboardLayout() {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('common.my_account')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  {t('common.profile')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/dashboard/settings")}>
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t('common.settings')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                  {t('common.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

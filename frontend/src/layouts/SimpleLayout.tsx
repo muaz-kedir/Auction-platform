@@ -2,7 +2,9 @@ import { Outlet } from "react-router";
 import { Link } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { Bell, User, Gavel } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
@@ -14,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 
 export function SimpleLayout() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
 
   const getInitials = (name: string) => {
@@ -42,6 +45,7 @@ export function SimpleLayout() {
 
           {/* Right Side */}
           <div className="flex items-center gap-4">
+            <LanguageSwitcher />
             <ThemeToggle />
             
             {user ? (
@@ -70,14 +74,14 @@ export function SimpleLayout() {
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/dashboard">Dashboard</Link>
+                      <Link to="/dashboard">{t('common.dashboard')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/dashboard/settings">Settings</Link>
+                      <Link to="/dashboard/settings">{t('common.settings')}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout}>
-                      Logout
+                      {t('common.logout')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -85,10 +89,10 @@ export function SimpleLayout() {
             ) : (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" asChild>
-                  <Link to="/login">Login</Link>
+                  <Link to="/login">{t('common.login')}</Link>
                 </Button>
                 <Button asChild>
-                  <Link to="/register">Sign Up</Link>
+                  <Link to="/register">{t('common.register')}</Link>
                 </Button>
               </div>
             )}

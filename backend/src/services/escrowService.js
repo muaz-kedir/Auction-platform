@@ -3,6 +3,7 @@ const Wallet = require("../models/Wallet");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
 const Bid = require("../models/Bid");
+const Dispute = require("../models/Dispute");
 
 /**
  * Escrow Service - Handles all escrow-related operations
@@ -127,7 +128,7 @@ class EscrowService {
    * Release funds to seller (admin only)
    * Called when admin approves the transaction
    */
-  static async releaseFunds(auctionId, adminId) {
+  static async releaseFunds(auctionId, adminId, disputeId = null) {
     const session = await Auction.startSession();
     
     try {
@@ -179,13 +180,14 @@ class EscrowService {
           status: "completed",
           from: "escrow",
           to: "wallet",
-          description: `Payment received for auction: ${auction.title}`,
+          description: `Payment received for auction: ${auction.title}${disputeId ? " (Dispute Resolved)" : ""}`,
           buyerId: auction.winner._id,
           sellerId: auction.seller._id,
           processedBy: adminId,
           metadata: {
             auctionTitle: auction.title,
             releasedBy: "admin",
+            disputeId: disputeId,
             previousSellerBalance: sellerWallet.balance - winningBid,
             newSellerBalance: sellerWallet.balance,
           },
@@ -196,6 +198,19 @@ class EscrowService {
         auction.paymentStatus = "released";
         auction.releasedAt = new Date();
         auction.releaseTransactionId = transaction[0]._id;
+        
+        // Handle dispute if provided
+        if (disputeId) {
+          const dispute = await Dispute.findById(disputeId).session(session);
+          if (dispute) {
+            dispute.status = "RESOLVED";
+            dispute.resolutionAction = "release";
+            dispute.resolvedBy = adminId;
+            dispute.resolvedAt = new Date();
+            await dispute.save({ session });
+          }
+        }
+        
         await auction.save({ session });
 
         console.log(`✅ Escrow release completed for auction ${auctionId}. Seller paid: ${winningBid}`);
@@ -218,7 +233,7 @@ class EscrowService {
   /**
    * Refund funds to buyer (admin only - for disputes)
    */
-  static async refundFunds(auctionId, adminId, reason = "") {
+  static async refundFunds(auctionId, adminId, reason = "", disputeId = null) {
     const session = await Auction.startSession();
     
     try {
@@ -264,7 +279,7 @@ class EscrowService {
           status: "completed",
           from: "escrow",
           to: "wallet",
-          description: `Refund for auction: ${auction.title}${reason ? ` - Reason: ${reason}` : ""}`,
+          description: `Refund for auction: ${auction.title}${reason ? ` - Reason: ${reason}` : ""}${disputeId ? " (Dispute Resolved)" : ""}`,
           buyerId: auction.winner._id,
           sellerId: auction.seller._id,
           processedBy: adminId,
@@ -272,6 +287,7 @@ class EscrowService {
             auctionTitle: auction.title,
             refundReason: reason,
             refundedBy: "admin",
+            disputeId: disputeId,
           },
         }], { session });
 
@@ -281,10 +297,16 @@ class EscrowService {
         auction.refundedAt = new Date();
         auction.releaseTransactionId = transaction[0]._id;
         
-        // Close dispute if open
-        if (auction.dispute && auction.dispute.isOpen) {
-          auction.dispute.isOpen = false;
-          auction.dispute.resolvedAt = new Date();
+        // Handle dispute if provided
+        if (disputeId) {
+          const dispute = await Dispute.findById(disputeId).session(session);
+          if (dispute) {
+            dispute.status = "RESOLVED";
+            dispute.resolutionAction = "refund";
+            dispute.resolvedBy = adminId;
+            dispute.resolvedAt = new Date();
+            await dispute.save({ session });
+          }
         }
         
         await auction.save({ session });
@@ -341,7 +363,7 @@ class EscrowService {
   /**
    * Open a dispute
    */
-  static async openDispute(auctionId, userId, reason) {
+  static async openDispute(auctionId, userId, data) {
     const auction = await Auction.findById(auctionId);
     
     if (!auction) {
@@ -360,11 +382,20 @@ class EscrowService {
       throw new Error("Cannot open dispute. Invalid escrow status");
     }
 
-    auction.dispute = {
-      isOpen: true,
-      reason: reason,
-      openedAt: new Date(),
-    };
+    // Create Dispute document
+    const dispute = await Dispute.create({
+      auction: auctionId,
+      buyer: auction.winner,
+      seller: auction.seller,
+      creator: userId,
+      reason: data.reason,
+      description: data.description,
+      evidence: data.evidence || [],
+      status: "OPEN",
+    });
+
+    // Update Auction
+    auction.dispute = dispute._id;
     await auction.save();
 
     console.log(`⚠️ Dispute opened for auction ${auctionId} by ${isBuyer ? "buyer" : "seller"}`);
@@ -372,6 +403,7 @@ class EscrowService {
     return {
       success: true,
       auction: auction,
+      dispute: dispute,
       isBuyer: isBuyer,
     };
   }
@@ -384,7 +416,8 @@ class EscrowService {
       .populate("winner", "name email")
       .populate("seller", "name email")
       .populate("escrowTransactionId")
-      .populate("releaseTransactionId");
+      .populate("releaseTransactionId")
+      .populate("dispute");
 
     if (!auction) {
       throw new Error("Auction not found");
